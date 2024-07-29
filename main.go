@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"runtime"
-
+	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -70,12 +70,13 @@ type PyConfig struct {
 	FilesystemErrors      *byte
 	PycachePrefix         *byte
 	ParseArgv             int32
-	/*OrigArgv              PyWideStringList
-	Argv                  PyWideStringList
-	XOptions              PyWideStringList
-	WarnOptions           PyWideStringList
-	*/
-	Padding             [64]uint8
+
+	OrigArgv    PyWideStringList
+	Argv        PyWideStringList
+	XOptions    PyWideStringList
+	WarnOptions PyWideStringList
+	Padding     [4]int8 // xxx alignment issues?
+
 	SiteImport          int32
 	BytesWarning        int32
 	WarnDefaultEncoding int32
@@ -96,7 +97,7 @@ type PyConfig struct {
 	UseFrozenModules  int32
 	SafePath          int32
 	IntMaxStrDigits   int32
-	CpuCount          int32
+	// CpuCount          int32
 	// EnableGil         int32 // if gil disabled
 
 	/* Path configuration inputs */
@@ -108,15 +109,14 @@ type PyConfig struct {
 
 	/* Path configuration outputs */
 	ModuleSearchPathsSet int32
-	// ModuleSearchPaths    PyWideStringList
-	Padding2       [16]uint8
-	StdlibDir      *byte
-	Executable     *byte
-	BaseExecutable *byte
-	Prefix         *byte
-	BasePrefix     *byte
-	ExecPrefix     *byte
-	BaseExecPrefix *byte
+	ModuleSearchPaths    PyWideStringList
+	StdlibDir            *byte
+	Executable           *byte
+	BaseExecutable       *byte
+	Prefix               *byte
+	BasePrefix           *byte
+	ExecPrefix           *byte
+	BaseExecPrefix       *byte
 
 	/* Parameter only used by Py_Main */
 	SkipSourceFirstLine int32
@@ -206,9 +206,15 @@ func main() {
 	}
 	log.Println("preinitialization complete")
 
+	/* Configure our Paths */
 	config := PyConfig{}
-	pyConfig_InitIsolatedPythonConfig(&config)
+	pyConfig_InitPythonConfig(&config)
 	defer pyConfig_Clear(&config)
+	config.PathConfigWarnings = 0
+	config.TraceMalloc = 0
+	config.ParseArgv = 0
+	config.SafePath = 1
+	config.UserSiteDirectory = 0
 
 	home := "/Users/dv/src/gogopython/venv"
 	status = pyConfig_SetBytesString(&config, &config.Home, home)
@@ -217,20 +223,16 @@ func main() {
 	}
 	log.Println("set home:", home)
 
-	path := "/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12:/Users/dv/src/gogopython/venv/lib/python3.12/site-packages"
+	path := strings.Join([]string{
+		"/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12",
+		"/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload",
+		"/Users/dv/src/gogopython/venv/lib/python3.12/site-packages",
+	}, ":")
 	status = pyConfig_SetBytesString(&config, &config.PythonPathEnv, path)
 	if status.Type != 0 {
 		log.Fatalln("failed to set path:", PyBytesToString(status.ErrMsg))
 	}
 	log.Println("set path:", path)
-
-	config.PathConfigWarnings = 0xbeef
-
-	status = pyConfig_Read(&config)
-	if status.Type != 0 {
-		log.Fatalln("failed to read configuration")
-	}
-	log.Println("read configuration: search paths = ", config.ModuleSearchPathsSet)
 
 	status = py_InitializeFromConfig(&config)
 	if status.Type != 0 {
@@ -241,6 +243,8 @@ func main() {
 	program := `
 import sys
 print(sys.path)
+
+import httpx
 `
 	if pyrun_SimpleString(program) != 0 {
 		log.Fatalln("failed to run program")
