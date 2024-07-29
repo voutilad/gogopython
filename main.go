@@ -10,15 +10,13 @@ import (
 
 func main() {
 	var library string
-	switch runtime.GOOS {
+	switch os := runtime.GOOS; os {
 	case "darwin":
 		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
-		break
 	case "linux":
 		library = "libpython3.so"
-		break
 	default:
-		log.Fatalln("unsupported runtime: ", runtime.GOOS)
+		log.Fatalln("unsupported runtime:", os)
 	}
 
 	python, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
@@ -46,6 +44,7 @@ func main() {
 	config.ParseArgv = 0
 	config.SafePath = 1
 	config.UserSiteDirectory = 0
+	config.InstallSignalHandlers = 0
 
 	home := "/Users/dv/src/gogopython/venv"
 	status = pyConfig_SetBytesString(&config, &config.Home, home)
