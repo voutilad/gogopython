@@ -2,15 +2,31 @@ package main
 
 import (
 	"log"
+	"runtime"
+
+	"unsafe"
 
 	"github.com/ebitengine/purego"
 )
 
 type PyStatus struct {
 	Type     int32
-	Func     *uint8
-	ErrMsg   *uint8
+	Func     *byte
+	ErrMsg   *byte
 	ExitCode int32
+}
+
+func PyBytesToString(b *byte) string {
+	ptr := unsafe.Pointer(b)
+
+	for len := 0; len < 1024; len++ {
+		if *(*uint8)(ptr) == 0 {
+			return unsafe.String(b, len)
+		}
+		ptr = unsafe.Add(ptr, 1)
+	}
+
+	return ""
 }
 
 type PyPreConfig struct {
@@ -29,12 +45,14 @@ type PyPreConfig struct {
 
 type PyWideStringList struct {
 	Length int64
-	Items  **uint16
+	Items  **byte
 }
 
 type PyConfig struct {
-	ConfigInit            int32
+	ConfigInit int32
+
 	Isolated              int32
+	UseEnvironment        int32
 	DevMode               int32
 	InstallSignalHandlers int32
 	UseHashSeed           int32
@@ -46,115 +64,185 @@ type PyConfig struct {
 	CodeDebugRanges       int32
 	ShowRefCount          int32
 	DumpRefs              int32
-	DumpRefsFile          *uint16
+	DumpRefsFile          *byte
 	MallocStats           int32
-	FilesystemEncoding    *uint16
-	FilesystemErrors      *uint16
-	PycachePrefix         *uint16
+	FilesystemEncoding    *byte
+	FilesystemErrors      *byte
+	PycachePrefix         *byte
 	ParseArgv             int32
-	OrigArgv              PyWideStringList
+	/*OrigArgv              PyWideStringList
 	Argv                  PyWideStringList
 	XOptions              PyWideStringList
 	WarnOptions           PyWideStringList
-	SiteImport            int32
-	BytesWarning          int32
-	WarnDefaultEncoding   int32
-	Inspect               int32
-	Interactive           int32
-	OptimizationLevel     int32
-	ParserDebug           int32
-	WriteBytecode         int32
-	Verbose               int32
-	Quiet                 int32
-	UserSiteDirectory     int32
-	ConfigureCStdio       int32
-	BufferedStdio         int32
-	StdioEncodings        *uint16
-	StdioErrors           *uint16
-	// LegacyWindowsStdio // if windows
-	CheckHashPycsMode *uint16
+	*/
+	Padding             [64]uint8
+	SiteImport          int32
+	BytesWarning        int32
+	WarnDefaultEncoding int32
+	Inspect             int32
+	Interactive         int32
+	OptimizationLevel   int32
+	ParserDebug         int32
+	WriteBytecode       int32
+	Verbose             int32
+	Quiet               int32
+	UserSiteDirectory   int32
+	ConfigureCStdio     int32
+	BufferedStdio       int32
+	StdioEncodings      *byte
+	StdioErrors         *byte
+	// LegacyWindowsStdio  int32 // if windows
+	CheckHashPycsMode *byte
 	UseFrozenModules  int32
 	SafePath          int32
 	IntMaxStrDigits   int32
 	CpuCount          int32
-	// EnableGil int // if gil disabled
+	// EnableGil         int32 // if gil disabled
+
+	/* Path configuration inputs */
+	PathConfigWarnings int32
+	ProgramName        *byte
+	PythonPathEnv      *byte
+	Home               *byte
+	PlatLibDir         *byte
 
 	/* Path configuration outputs */
 	ModuleSearchPathsSet int32
-	ModuleSearchPaths    PyWideStringList
-	StdlibDir            *uint16
-	Executable           *uint16
-	BaseExecutable       *uint16
-	Prefix               *uint16
-	BasePrefix           *uint16
-	ExecPrefix           *uint16
-	BaseExecPrefix       *uint16
+	// ModuleSearchPaths    PyWideStringList
+	Padding2       [16]uint8
+	StdlibDir      *byte
+	Executable     *byte
+	BaseExecutable *byte
+	Prefix         *byte
+	BasePrefix     *byte
+	ExecPrefix     *byte
+	BaseExecPrefix *byte
 
 	/* Parameter only used by Py_Main */
 	SkipSourceFirstLine int32
-	RunCommand          *uint16
-	RunModule           *uint16
-	RunFilename         *uint16
+	RunCommand          *byte
+	RunModule           *byte
+	RunFilename         *byte
 
 	/* Set by Py_Main */
-	SysPath0 *uint16
+	SysPath0 *byte
 
 	/* Private Fields */
 	installImportLib int32
 	initMain         int32
 	isPythonBuild    int32
-	// pystats          int // if Py_Stats
-	// runPresite       *uint16t // if Py_DEBUG
+	// pystats          int32 // if Py_Stats
+	// runPresite       *byte // if Py_DEBUG
 }
 
 var (
-	py_InitializeEx func(int)
-	py_FinalizeEx   func()
-	py_GetPath      func() string
-	py_SetPath      func(*byte)
+	py_GetPath func() *byte
+	py_SetPath func(*byte)
 
-	pyPreConfig_InitIsolatedConfig func(c *PyPreConfig)
-	py_PreInitialize               func(c *PyPreConfig) int32 // this is crap
+	py_DecodeLocale         func(string, uint64) *byte
+	py_EncodeLocale         func(*byte, uint64) string
+	pyWideStringList_Append func(*PyWideStringList, *byte) PyStatus
 
-	pyrun_SimpleString func(string) int
+	pyPreConfig_InitIsolatedConfig func(*PyPreConfig)
+	py_PreInitialize               func(*PyPreConfig) PyStatus
+
+	pyConfig_InitPythonConfig         func(*PyConfig)
+	pyConfig_InitIsolatedPythonConfig func(*PyConfig)
+	pyConfig_SetBytesString           func(*PyConfig, **byte, string) PyStatus
+	pyConfig_Clear                    func(*PyConfig)
+	py_InitializeFromConfig           func(*PyConfig) PyStatus
+	pyConfig_Read                     func(*PyConfig) PyStatus
+
+	pyrun_SimpleString func(string) int32
 )
 
 func main() {
-	python, err := purego.Dlopen("libpython3.so", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	var library string
+	switch runtime.GOOS {
+	case "darwin":
+		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
+		break
+	case "linux":
+		library = "libpython3.so"
+		break
+	default:
+		log.Fatalln("unsupported runtime: ", runtime.GOOS)
+	}
+
+	python, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
 		log.Fatalln("dlopen: ", err)
 	}
 
-	program := `
-import sys
-print(f"path: {sys.path}")
+	// ============================
 
-import httpx
-r = httpx.get("https://api.ipify.org?format=json")
-print(r)
-`
-
-	purego.RegisterLibFunc(&py_InitializeEx, python, "Py_InitializeEx")
-	purego.RegisterLibFunc(&py_FinalizeEx, python, "Py_FinalizeEx")
 	purego.RegisterLibFunc(&py_GetPath, python, "Py_GetPath")
 	purego.RegisterLibFunc(&py_SetPath, python, "Py_SetPath")
+
+	purego.RegisterLibFunc(&py_DecodeLocale, python, "Py_DecodeLocale")
+	purego.RegisterLibFunc(&py_EncodeLocale, python, "Py_EncodeLocale")
+	purego.RegisterLibFunc(&pyWideStringList_Append, python, "PyWideStringList_Append")
+
 	purego.RegisterLibFunc(&pyPreConfig_InitIsolatedConfig, python, "PyPreConfig_InitIsolatedConfig")
 	purego.RegisterLibFunc(&py_PreInitialize, python, "Py_PreInitialize")
+
+	purego.RegisterLibFunc(&pyConfig_InitPythonConfig, python, "PyConfig_InitPythonConfig")
+	purego.RegisterLibFunc(&pyConfig_InitIsolatedPythonConfig, python, "PyConfig_InitIsolatedConfig")
+	purego.RegisterLibFunc(&pyConfig_SetBytesString, python, "PyConfig_SetBytesString")
+	purego.RegisterLibFunc(&pyConfig_Clear, python, "PyConfig_Clear")
+	purego.RegisterLibFunc(&pyConfig_Read, python, "PyConfig_Read")
+
+	purego.RegisterLibFunc(&py_InitializeFromConfig, python, "Py_InitializeFromConfig")
+
 	purego.RegisterLibFunc(&pyrun_SimpleString, python, "PyRun_SimpleString")
 
-	config := PyPreConfig{}
-	pyPreConfig_InitIsolatedConfig(&config)
-	config.Utf8Mode = 1
+	// ============================
 
-	log.Println("config is isolated? ", config.Isolated)
-	log.Println("utf8 is enabled? ", config.Utf8Mode)
+	preConfig := PyPreConfig{}
+	pyPreConfig_InitIsolatedConfig(&preConfig)
+	status := py_PreInitialize(&preConfig)
+	if status.Type != 0 {
+		log.Fatalln("failed to preinitialize python:", PyBytesToString(status.ErrMsg))
+	}
+	log.Println("preinitialization complete")
 
-	//status := py_PreInitialize(&config)
-	//log.Println("status? ", status)
+	config := PyConfig{}
+	pyConfig_InitIsolatedPythonConfig(&config)
+	defer pyConfig_Clear(&config)
 
-	py_InitializeEx(0)
+	home := "/Users/dv/src/gogopython/venv"
+	status = pyConfig_SetBytesString(&config, &config.Home, home)
+	if status.Type != 0 {
+		log.Fatalln("failed to set home:", PyBytesToString(status.ErrMsg))
+	}
+	log.Println("set home:", home)
 
-	result := pyrun_SimpleString(program)
-	log.Println("returned ", result)
-	py_FinalizeEx()
+	path := "/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12:/Users/dv/src/gogopython/venv/lib/python3.12/site-packages"
+	status = pyConfig_SetBytesString(&config, &config.PythonPathEnv, path)
+	if status.Type != 0 {
+		log.Fatalln("failed to set path:", PyBytesToString(status.ErrMsg))
+	}
+	log.Println("set path:", path)
+
+	config.PathConfigWarnings = 0xbeef
+
+	status = pyConfig_Read(&config)
+	if status.Type != 0 {
+		log.Fatalln("failed to read configuration")
+	}
+	log.Println("read configuration: search paths = ", config.ModuleSearchPathsSet)
+
+	status = py_InitializeFromConfig(&config)
+	if status.Type != 0 {
+		log.Fatalln("failed to initialize Python:", PyBytesToString(status.ErrMsg))
+	}
+	log.Println("initialized")
+
+	program := `
+import sys
+print(sys.path)
+`
+	if pyrun_SimpleString(program) != 0 {
+		log.Fatalln("failed to run program")
+	}
 }
