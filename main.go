@@ -81,7 +81,7 @@ func main() {
 
 	// Create a sub-interpreter to partially isolate the script.
 	interpreterConfig := PyInterpreterConfig{}
-	interpreterConfig.Gil = SharedGil
+	interpreterConfig.Gil = OwnGil
 	interpreterConfig.AllowThreads = 1
 	interpreterConfig.CheckMultiInterpExtensions = 1
 	log.Printf("interpreter config: %p", &interpreterConfig)
@@ -100,7 +100,10 @@ func main() {
 		log.Fatalln("failed to create sub-interpreter:", PyBytesToString(status.ErrMsg))
 	}
 	print_current_interpreter()
+	gil2 := PyGILState_Ensure()
+
 	Py_EndInterpreter(subThreadPtr)
+	PyGILState_Release(gil2)
 
 	PyThreadState_Swap(mainStatePtr)
 	print_current_interpreter()
