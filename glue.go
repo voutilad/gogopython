@@ -8,6 +8,7 @@ import (
 
 type PyObjectPtr *byte
 type WCharPtr *byte
+type PyGILState int32
 
 type StartToken = int32
 
@@ -137,35 +138,126 @@ type PyConfig struct {
 	SysPath0 *byte
 
 	/* Private Fields */
-	installImportLib int32
-	initMain         int32
-	isPythonBuild    int32
+	InstallImportLib int32
+	InitMain         int32
+	IsPythonBuild    int32
 	// pystats          int32 // if Py_Stats
 	// runPresite       *byte // if Py_DEBUG
 }
 
+type GilType int32
+
+const (
+	DefaultGil GilType = 0
+	SharedGil  GilType = 1
+	OwnGil     GilType = 2
+)
+
+type PyInterpreterConfig struct {
+	UseMainObMalloc            int32
+	AllowFork                  int32
+	AllowExec                  int32
+	AllowThreads               int32
+	AllowDaemonThreads         int32
+	CheckMultiInterpExtensions int32
+	Gil                        GilType
+}
+
+type pyTrashCan struct {
+	DeleteNesting int32
+	DeleteLater   PyObjectPtr
+}
+
+type pyCFrame struct {
+	CurrentFrame uintptr
+	Previous     uintptr
+}
+
+type pyStackChunk struct {
+	Previous uintptr
+	Size     int //xxx size_t?
+	Top      int //xxx size_t?
+	Data     uintptr
+}
+
+type pyErrStackItem struct {
+	ExcValue     PyObjectPtr
+	PreviousItem uintptr
+}
+
+type PyThreadState_3_12 struct {
+	Prev                         uintptr
+	Next                         uintptr
+	Interp                       uintptr
+	Status                       uint32
+	PyRecursionRemaining         int32
+	PyRecursionLimit             int32
+	CRecursionRemaining          int32
+	RecursionHeadroom            int32
+	Tracing                      int32
+	WhatEvent                    int32
+	CFrame                       uintptr
+	CProfileFunc                 uintptr
+	CTraceFunc                   uintptr
+	CProfileObj                  PyObjectPtr
+	CTraceObj                    PyObjectPtr
+	CurrentException             PyObjectPtr
+	ExcInfo                      uintptr
+	Dict                         PyObjectPtr
+	GilstateCounter              int32
+	AsyncExc                     PyObjectPtr
+	ThreadId                     uint
+	NativeThreadId               uint
+	Trash                        pyTrashCan
+	OnDelete                     uintptr
+	OnDeleteData                 uintptr
+	CoRoutineOriginTrackingDepth int32
+	AsyncGenFirstIter            PyObjectPtr
+	AsyncGenFinalizer            PyObjectPtr
+	Context                      PyObjectPtr
+	ContextVer                   uint64
+	Id                           uint64
+	DataStackChunk               pyStackChunk
+	DataStackTop                 uintptr
+	DataStackLimit               uintptr
+	ExcState                     pyErrStackItem
+	RootCFrame                   pyCFrame
+}
+
 var (
-	py_DecodeLocale         func(string, uint64) WCharPtr
-	py_EncodeLocale         func(WCharPtr, uint64) string
-	pyWideStringList_Append func(*PyWideStringList, WCharPtr) PyStatus
+	Py_DecodeLocale         func(string, uint64) WCharPtr
+	Py_EncodeLocale         func(WCharPtr, uint64) string
+	PyWideStringList_Append func(*PyWideStringList, WCharPtr) PyStatus
 
-	pyPreConfig_InitIsolatedConfig func(*PyPreConfig)
-	py_PreInitialize               func(*PyPreConfig) PyStatus
+	PyPreConfig_InitIsolatedConfig func(*PyPreConfig)
+	Py_PreInitialize               func(*PyPreConfig) PyStatus
 
-	pyConfig_InitPythonConfig         func(*PyConfig)
-	pyConfig_InitIsolatedPythonConfig func(*PyConfig)
-	pyConfig_SetBytesString           func(*PyConfig, *WCharPtr, string) PyStatus
-	pyConfig_Clear                    func(*PyConfig)
-	py_InitializeFromConfig           func(*PyConfig) PyStatus
-	pyConfig_Read                     func(*PyConfig) PyStatus
+	PyConfig_InitPythonConfig         func(*PyConfig)
+	PyConfig_InitIsolatedPythonConfig func(*PyConfig)
+	PyConfig_SetBytesString           func(*PyConfig, *WCharPtr, string) PyStatus
+	PyConfig_Clear                    func(*PyConfig)
+	Py_InitializeFromConfig           func(*PyConfig) PyStatus
+	PyConfig_Read                     func(*PyConfig) PyStatus
 
-	py_FinalizeEx func() int32
+	Py_FinalizeEx func() int32
+
+	Py_NewInterpreterFromConfig func(**PyThreadState_3_12, *PyInterpreterConfig) PyStatus
+	Py_EndInterpreter           func(*PyThreadState_3_12)
+
+	PyGILState_Check   func() int32
+	PyGILState_Ensure  func() PyGILState
+	PyGILState_Release func(PyGILState)
+
+	PyEval_SaveThread    func() *PyThreadState_3_12
+	PyEval_RestoreThread func(*PyThreadState_3_12)
 
 	PyRun_SimpleString func(string) int32
 	PyRun_String       func(s string, token StartToken, globals, locals PyObjectPtr) PyObjectPtr
 
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
+
+	PyBool_FromLong func(int) PyObjectPtr
 
 	PyLong_FromLong             func(int) PyObjectPtr
 	PyLong_FromUnsignedLong     func(uint) PyObjectPtr
@@ -189,29 +281,39 @@ var (
 )
 
 func registerFuncs(pythonLib uintptr) {
+	purego.RegisterLibFunc(&Py_DecodeLocale, pythonLib, "Py_DecodeLocale")
+	purego.RegisterLibFunc(&Py_EncodeLocale, pythonLib, "Py_EncodeLocale")
+	purego.RegisterLibFunc(&PyWideStringList_Append, pythonLib, "PyWideStringList_Append")
 
-	purego.RegisterLibFunc(&py_DecodeLocale, pythonLib, "Py_DecodeLocale")
-	purego.RegisterLibFunc(&py_EncodeLocale, pythonLib, "Py_EncodeLocale")
-	purego.RegisterLibFunc(&pyWideStringList_Append, pythonLib, "PyWideStringList_Append")
+	purego.RegisterLibFunc(&PyPreConfig_InitIsolatedConfig, pythonLib, "PyPreConfig_InitIsolatedConfig")
+	purego.RegisterLibFunc(&Py_PreInitialize, pythonLib, "Py_PreInitialize")
 
-	purego.RegisterLibFunc(&pyPreConfig_InitIsolatedConfig, pythonLib, "PyPreConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&py_PreInitialize, pythonLib, "Py_PreInitialize")
+	purego.RegisterLibFunc(&PyConfig_InitPythonConfig, pythonLib, "PyConfig_InitPythonConfig")
+	purego.RegisterLibFunc(&PyConfig_InitIsolatedPythonConfig, pythonLib, "PyConfig_InitIsolatedConfig")
+	purego.RegisterLibFunc(&PyConfig_SetBytesString, pythonLib, "PyConfig_SetBytesString")
+	purego.RegisterLibFunc(&PyConfig_Clear, pythonLib, "PyConfig_Clear")
+	purego.RegisterLibFunc(&PyConfig_Read, pythonLib, "PyConfig_Read")
 
-	purego.RegisterLibFunc(&pyConfig_InitPythonConfig, pythonLib, "PyConfig_InitPythonConfig")
-	purego.RegisterLibFunc(&pyConfig_InitIsolatedPythonConfig, pythonLib, "PyConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&pyConfig_SetBytesString, pythonLib, "PyConfig_SetBytesString")
-	purego.RegisterLibFunc(&pyConfig_Clear, pythonLib, "PyConfig_Clear")
-	purego.RegisterLibFunc(&pyConfig_Read, pythonLib, "PyConfig_Read")
+	purego.RegisterLibFunc(&Py_FinalizeEx, pythonLib, "Py_FinalizeEx")
 
-	purego.RegisterLibFunc(&py_FinalizeEx, pythonLib, "Py_FinalizeEx")
+	purego.RegisterLibFunc(&Py_NewInterpreterFromConfig, pythonLib, "Py_NewInterpreterFromConfig")
 
-	purego.RegisterLibFunc(&py_InitializeFromConfig, pythonLib, "Py_InitializeFromConfig")
+	purego.RegisterLibFunc(&PyGILState_Check, pythonLib, "PyGILState_Check")
+	purego.RegisterLibFunc(&PyGILState_Ensure, pythonLib, "PyGILState_Ensure")
+	purego.RegisterLibFunc(&PyGILState_Release, pythonLib, "PyGILState_Release")
+
+	purego.RegisterLibFunc(&PyEval_SaveThread, pythonLib, "PyEval_SaveThread")
+	purego.RegisterLibFunc(&PyEval_RestoreThread, pythonLib, "PyEval_RestoreThread")
+
+	purego.RegisterLibFunc(&Py_InitializeFromConfig, pythonLib, "Py_InitializeFromConfig")
 
 	purego.RegisterLibFunc(&PyRun_SimpleString, pythonLib, "PyRun_SimpleString")
 	purego.RegisterLibFunc(&PyRun_String, pythonLib, "PyRun_String")
 
 	purego.RegisterLibFunc(&PyModule_New, pythonLib, "PyModule_New")
 	purego.RegisterLibFunc(&PyModule_AddObjectRef, pythonLib, "PyModule_AddObjectRef")
+
+	purego.RegisterLibFunc(&PyBool_FromLong, pythonLib, "PyBool_FromLong")
 
 	purego.RegisterLibFunc(&PyLong_FromLong, pythonLib, "PyLong_FromLong")
 	purego.RegisterLibFunc(&PyLong_FromUnsignedLong, pythonLib, "PyLong_FromUnsignedLong")
