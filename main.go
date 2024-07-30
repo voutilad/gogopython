@@ -2,30 +2,13 @@ package main
 
 import (
 	"log"
-	"runtime"
 	"strings"
-
-	"github.com/ebitengine/purego"
 )
 
 func main() {
-	var library string
-	switch os := runtime.GOOS; os {
-	case "darwin":
-		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
-	case "linux":
-		// Need to update purego to handle unmarshaling structs returned on the stack.
-		// Python functions sometimes return a PyStatus object. So, so annoying. Who
-		// does this?! I guess it's a consequence of being written for i386...sigh.
-		log.Fatalln("ugh, python does dumb things like returning a struct on the stack...no worky yet on Linux")
-		// library = "libpython3.so"
-	default:
-		log.Fatalln("unsupported runtime:", os)
-	}
-
-	python, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	python, err := load_library()
 	if err != nil {
-		log.Fatalln("dlopen: ", err)
+		log.Fatalln(err)
 	}
 	registerFuncs(python)
 
@@ -47,6 +30,7 @@ func main() {
 	 */
 	config := PyConfig_3_12{}
 	PyConfig_InitPythonConfig(&config)
+	defer PyConfig_Clear(&config)
 	config.ParseArgv = 0
 	config.SafePath = 1
 	config.UserSiteDirectory = 0
@@ -81,14 +65,13 @@ func main() {
 
 	// Create a sub-interpreter to partially isolate the script.
 	interpreterConfig := PyInterpreterConfig{}
-	interpreterConfig.Gil = OwnGil
-	interpreterConfig.AllowThreads = 1
+	interpreterConfig.Gil = DefaultGil // OwnGil works in 3.12, but is hard to use.
 	interpreterConfig.CheckMultiInterpExtensions = 1
 	log.Printf("interpreter config: %p", &interpreterConfig)
 
 	mainStatePtr := PyThreadState_Get()
 
-	PyEval_ReleaseThread(mainStatePtr)
+	//PyEval_ReleaseThread(mainStatePtr)
 
 	gil := PyGILState_Ensure()
 	print_current_interpreter()
@@ -100,20 +83,19 @@ func main() {
 		log.Fatalln("failed to create sub-interpreter:", PyBytesToString(status.ErrMsg))
 	}
 	print_current_interpreter()
-	gil2 := PyGILState_Ensure()
 
 	Py_EndInterpreter(subThreadPtr)
-	PyGILState_Release(gil2)
 
 	PyThreadState_Swap(mainStatePtr)
 	print_current_interpreter()
 	PyGILState_Release(gil)
 
-	PyEval_RestoreThread(mainStatePtr)
+	//PyEval_RestoreThread(mainStatePtr)
 	Py_FinalizeEx()
 }
 
 func print_current_interpreter() {
+	/// See https://github.com/python/cpython/blob/2b163aa9e796b312bb0549d49145d26e4904768e/Programs/_testembed.c#L100-L115
 	ts := PyThreadState_Get()
 	me := PyThreadState_GetInterpreter(ts)
 	id := PyInterpreterState_GetID(me)

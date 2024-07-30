@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -237,71 +239,91 @@ var (
 	PyErr_Print func()
 )
 
-func registerFuncs(pythonLib uintptr) {
-	purego.RegisterLibFunc(&Py_DecodeLocale, pythonLib, "Py_DecodeLocale")
-	purego.RegisterLibFunc(&Py_EncodeLocale, pythonLib, "Py_EncodeLocale")
+type PythonLibraryPtr = uintptr
 
-	purego.RegisterLibFunc(&PyPreConfig_InitIsolatedConfig, pythonLib, "PyPreConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&Py_PreInitialize, pythonLib, "Py_PreInitialize")
-	purego.RegisterLibFunc(&Py_InitializeFromConfig, pythonLib, "Py_InitializeFromConfig")
+func registerFuncs(lib PythonLibraryPtr) {
+	purego.RegisterLibFunc(&Py_DecodeLocale, lib, "Py_DecodeLocale")
+	purego.RegisterLibFunc(&Py_EncodeLocale, lib, "Py_EncodeLocale")
 
-	purego.RegisterLibFunc(&PyConfig_InitPythonConfig, pythonLib, "PyConfig_InitPythonConfig")
-	purego.RegisterLibFunc(&PyConfig_InitIsolatedPythonConfig, pythonLib, "PyConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&PyConfig_SetBytesString, pythonLib, "PyConfig_SetBytesString")
-	purego.RegisterLibFunc(&PyConfig_Clear, pythonLib, "PyConfig_Clear")
-	purego.RegisterLibFunc(&PyConfig_Read, pythonLib, "PyConfig_Read")
+	purego.RegisterLibFunc(&PyPreConfig_InitIsolatedConfig, lib, "PyPreConfig_InitIsolatedConfig")
+	purego.RegisterLibFunc(&Py_PreInitialize, lib, "Py_PreInitialize")
+	purego.RegisterLibFunc(&Py_InitializeFromConfig, lib, "Py_InitializeFromConfig")
 
-	purego.RegisterLibFunc(&Py_FinalizeEx, pythonLib, "Py_FinalizeEx")
+	purego.RegisterLibFunc(&PyConfig_InitPythonConfig, lib, "PyConfig_InitPythonConfig")
+	purego.RegisterLibFunc(&PyConfig_InitIsolatedPythonConfig, lib, "PyConfig_InitIsolatedConfig")
+	purego.RegisterLibFunc(&PyConfig_SetBytesString, lib, "PyConfig_SetBytesString")
+	purego.RegisterLibFunc(&PyConfig_Clear, lib, "PyConfig_Clear")
+	purego.RegisterLibFunc(&PyConfig_Read, lib, "PyConfig_Read")
 
-	purego.RegisterLibFunc(&Py_NewInterpreterFromConfig, pythonLib, "Py_NewInterpreterFromConfig")
-	purego.RegisterLibFunc(&Py_EndInterpreter, pythonLib, "Py_EndInterpreter")
+	purego.RegisterLibFunc(&Py_FinalizeEx, lib, "Py_FinalizeEx")
 
-	purego.RegisterLibFunc(&PyGILState_Check, pythonLib, "PyGILState_Check")
-	purego.RegisterLibFunc(&PyGILState_Ensure, pythonLib, "PyGILState_Ensure")
-	purego.RegisterLibFunc(&PyGILState_Release, pythonLib, "PyGILState_Release")
+	purego.RegisterLibFunc(&Py_NewInterpreterFromConfig, lib, "Py_NewInterpreterFromConfig")
+	purego.RegisterLibFunc(&Py_EndInterpreter, lib, "Py_EndInterpreter")
 
-	purego.RegisterLibFunc(&PyEval_AcquireThread, pythonLib, "PyEval_AcquireThread")
-	purego.RegisterLibFunc(&PyEval_ReleaseThread, pythonLib, "PyEval_ReleaseThread")
-	purego.RegisterLibFunc(&PyEval_SaveThread, pythonLib, "PyEval_SaveThread")
-	purego.RegisterLibFunc(&PyEval_RestoreThread, pythonLib, "PyEval_RestoreThread")
+	purego.RegisterLibFunc(&PyGILState_Check, lib, "PyGILState_Check")
+	purego.RegisterLibFunc(&PyGILState_Ensure, lib, "PyGILState_Ensure")
+	purego.RegisterLibFunc(&PyGILState_Release, lib, "PyGILState_Release")
 
-	purego.RegisterLibFunc(&PyThreadState_Get, pythonLib, "PyThreadState_Get")
-	purego.RegisterLibFunc(&PyThreadState_Swap, pythonLib, "PyThreadState_Swap")
-	purego.RegisterLibFunc(&PyThreadState_Clear, pythonLib, "PyThreadState_Clear")
-	purego.RegisterLibFunc(&PyThreadState_Delete, pythonLib, "PyThreadState_Delete")
-	purego.RegisterLibFunc(&PyThreadState_DeleteCurrent, pythonLib, "PyThreadState_DeleteCurrent")
-	purego.RegisterLibFunc(&PyThreadState_GetInterpreter, pythonLib, "PyThreadState_GetInterpreter")
+	purego.RegisterLibFunc(&PyEval_AcquireThread, lib, "PyEval_AcquireThread")
+	purego.RegisterLibFunc(&PyEval_ReleaseThread, lib, "PyEval_ReleaseThread")
+	purego.RegisterLibFunc(&PyEval_SaveThread, lib, "PyEval_SaveThread")
+	purego.RegisterLibFunc(&PyEval_RestoreThread, lib, "PyEval_RestoreThread")
 
-	purego.RegisterLibFunc(&PyInterpreterState_Get, pythonLib, "PyInterpreterState_Get")
-	purego.RegisterLibFunc(&PyInterpreterState_GetID, pythonLib, "PyInterpreterState_GetID")
-	purego.RegisterLibFunc(&PyInterpreterState_Clear, pythonLib, "PyInterpreterState_Clear")
-	purego.RegisterLibFunc(&PyInterpreterState_Delete, pythonLib, "PyInterpreterState_Delete")
+	purego.RegisterLibFunc(&PyThreadState_Get, lib, "PyThreadState_Get")
+	purego.RegisterLibFunc(&PyThreadState_Swap, lib, "PyThreadState_Swap")
+	purego.RegisterLibFunc(&PyThreadState_Clear, lib, "PyThreadState_Clear")
+	purego.RegisterLibFunc(&PyThreadState_Delete, lib, "PyThreadState_Delete")
+	purego.RegisterLibFunc(&PyThreadState_DeleteCurrent, lib, "PyThreadState_DeleteCurrent")
+	purego.RegisterLibFunc(&PyThreadState_GetInterpreter, lib, "PyThreadState_GetInterpreter")
 
-	purego.RegisterLibFunc(&PyRun_SimpleString, pythonLib, "PyRun_SimpleString")
-	purego.RegisterLibFunc(&PyRun_String, pythonLib, "PyRun_String")
+	purego.RegisterLibFunc(&PyInterpreterState_Get, lib, "PyInterpreterState_Get")
+	purego.RegisterLibFunc(&PyInterpreterState_GetID, lib, "PyInterpreterState_GetID")
+	purego.RegisterLibFunc(&PyInterpreterState_Clear, lib, "PyInterpreterState_Clear")
+	purego.RegisterLibFunc(&PyInterpreterState_Delete, lib, "PyInterpreterState_Delete")
 
-	purego.RegisterLibFunc(&PyModule_New, pythonLib, "PyModule_New")
-	purego.RegisterLibFunc(&PyModule_AddObjectRef, pythonLib, "PyModule_AddObjectRef")
+	purego.RegisterLibFunc(&PyRun_SimpleString, lib, "PyRun_SimpleString")
+	purego.RegisterLibFunc(&PyRun_String, lib, "PyRun_String")
 
-	purego.RegisterLibFunc(&PyBool_FromLong, pythonLib, "PyBool_FromLong")
+	purego.RegisterLibFunc(&PyModule_New, lib, "PyModule_New")
+	purego.RegisterLibFunc(&PyModule_AddObjectRef, lib, "PyModule_AddObjectRef")
 
-	purego.RegisterLibFunc(&PyLong_FromLong, pythonLib, "PyLong_FromLong")
-	purego.RegisterLibFunc(&PyLong_FromUnsignedLong, pythonLib, "PyLong_FromUnsignedLong")
-	purego.RegisterLibFunc(&PyLong_FromLongLong, pythonLib, "PyLong_FromLongLong")
-	purego.RegisterLibFunc(&PyLong_FromUnsignedLongLong, pythonLib, "PyLong_FromUnsignedLongLong")
+	purego.RegisterLibFunc(&PyBool_FromLong, lib, "PyBool_FromLong")
 
-	purego.RegisterLibFunc(&PyTuple_New, pythonLib, "PyTuple_New")
-	purego.RegisterLibFunc(&PyTuple_SetItem, pythonLib, "PyTuple_SetItem")
+	purego.RegisterLibFunc(&PyLong_FromLong, lib, "PyLong_FromLong")
+	purego.RegisterLibFunc(&PyLong_FromUnsignedLong, lib, "PyLong_FromUnsignedLong")
+	purego.RegisterLibFunc(&PyLong_FromLongLong, lib, "PyLong_FromLongLong")
+	purego.RegisterLibFunc(&PyLong_FromUnsignedLongLong, lib, "PyLong_FromUnsignedLongLong")
 
-	purego.RegisterLibFunc(&PyDict_New, pythonLib, "PyDict_New")
-	purego.RegisterLibFunc(&PyDictProxy_New, pythonLib, "PyDictProxy_New")
-	purego.RegisterLibFunc(&PyDict_Clear, pythonLib, "PyDict_Clear")
-	purego.RegisterLibFunc(&PyDict_SetItem, pythonLib, "PyDict_SetItem")
-	purego.RegisterLibFunc(&PyDict_SetItemString, pythonLib, "PyDict_SetItemString")
+	purego.RegisterLibFunc(&PyTuple_New, lib, "PyTuple_New")
+	purego.RegisterLibFunc(&PyTuple_SetItem, lib, "PyTuple_SetItem")
 
-	purego.RegisterLibFunc(&Py_DecRef, pythonLib, "Py_DecRef")
-	purego.RegisterLibFunc(&Py_IncRef, pythonLib, "Py_IncRef")
+	purego.RegisterLibFunc(&PyDict_New, lib, "PyDict_New")
+	purego.RegisterLibFunc(&PyDictProxy_New, lib, "PyDictProxy_New")
+	purego.RegisterLibFunc(&PyDict_Clear, lib, "PyDict_Clear")
+	purego.RegisterLibFunc(&PyDict_SetItem, lib, "PyDict_SetItem")
+	purego.RegisterLibFunc(&PyDict_SetItemString, lib, "PyDict_SetItemString")
 
-	purego.RegisterLibFunc(&PyErr_Clear, pythonLib, "PyErr_Clear")
-	purego.RegisterLibFunc(&PyErr_Print, pythonLib, "PyErr_Print")
+	purego.RegisterLibFunc(&Py_DecRef, lib, "Py_DecRef")
+	purego.RegisterLibFunc(&Py_IncRef, lib, "Py_IncRef")
+
+	purego.RegisterLibFunc(&PyErr_Clear, lib, "PyErr_Clear")
+	purego.RegisterLibFunc(&PyErr_Print, lib, "PyErr_Print")
+}
+
+func load_library() (PythonLibraryPtr, error) {
+	var library string
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
+	case "linux":
+		// Need to update purego to handle unmarshaling structs returned on the stack.
+		// Python functions sometimes return a PyStatus object. So, so annoying. Who
+		// does this?! I guess it's a consequence of being written for i386...sigh.
+		log.Fatalln("ugh, python does dumb things like returning a struct on the stack...no worky yet on Linux")
+		// library = "libpython3.so"
+	default:
+		log.Fatalln("unsupported runtime:", os)
+	}
+
+	return purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 }
