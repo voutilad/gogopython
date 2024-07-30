@@ -12,10 +12,10 @@ type WCharPtr *byte
 type StartToken = int32
 
 const (
-	PySingleInput   StartToken = 256
-	PyFileInput     StartToken = 257
-	PyEvalInput     StartToken = 258
-	PyFuncTypeInput StartToken = 345
+	PySingleInput   StartToken = 256 // Used for single statements
+	PyFileInput     StartToken = 257 // Used for modules (i.e. many statements)
+	PyEvalInput     StartToken = 258 // Used for expressions(?)
+	PyFuncTypeInput StartToken = 345 // ??? no idea
 )
 
 type PyStatus struct {
@@ -183,6 +183,9 @@ var (
 
 	Py_DecRef func(PyObjectPtr)
 	Py_IncRef func(PyObjectPtr)
+
+	PyErr_Clear func()
+	PyErr_Print func()
 )
 
 func registerFuncs(pythonLib uintptr) {
@@ -226,4 +229,7 @@ func registerFuncs(pythonLib uintptr) {
 
 	purego.RegisterLibFunc(&Py_DecRef, pythonLib, "Py_DecRef")
 	purego.RegisterLibFunc(&Py_IncRef, pythonLib, "Py_IncRef")
+
+	purego.RegisterLibFunc(&PyErr_Clear, pythonLib, "PyErr_Clear")
+	purego.RegisterLibFunc(&PyErr_Print, pythonLib, "PyErr_Print")
 }

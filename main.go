@@ -86,10 +86,20 @@ func main() {
 	}
 
 	program := `
-print(junk)
+import numpy as np
+import torch
+data = [[1, 2], [3, 4]]
+print(torch.tensor(data))
 `
-	if PyRun_String(program, PySingleInput, globals, locals) == nil {
-		log.Fatalln("crap")
+	if PyRun_String(program, PyFileInput, globals, locals) == nil {
+		PyErr_Print()
+		PyErr_Clear()
+		log.Fatalln("crap1")
 	}
 
+	if PyRun_String("print(junk)", PySingleInput, globals, locals) == nil {
+		PyErr_Print()
+		PyErr_Clear()
+		log.Fatalln("crap2")
+	}
 }
