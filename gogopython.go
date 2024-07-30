@@ -1,4 +1,4 @@
-package main
+package gogopython
 
 import (
 	"log"
@@ -310,7 +310,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyErr_Print, lib, "PyErr_Print")
 }
 
-func load_library() (PythonLibraryPtr, error) {
+func Load_library() error {
 	var library string
 	switch os := runtime.GOOS; os {
 	case "darwin":
@@ -325,5 +325,13 @@ func load_library() (PythonLibraryPtr, error) {
 		log.Fatalln("unsupported runtime:", os)
 	}
 
-	return purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	lib, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+	log.Println("dlopen'ed library", library)
+
+	registerFuncs(lib)
+	log.Println("registered python functions")
+	return nil
 }
