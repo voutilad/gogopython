@@ -33,6 +33,7 @@ func main() {
 
 	preConfig := PyPreConfig{}
 	PyPreConfig_InitIsolatedConfig(&preConfig)
+	preConfig.Allocator = 3
 	status := Py_PreInitialize(&preConfig)
 	if status.Type != 0 {
 		log.Fatalln("failed to preinitialize python:", PyBytesToString(status.ErrMsg))
@@ -44,13 +45,13 @@ func main() {
 	 * because Python will ignore our modifying some values if we initialize an
 	 * isolated config. Annoying.
 	 */
-	config := PyConfig{}
+	config := PyConfig_3_12{}
 	PyConfig_InitPythonConfig(&config)
-	defer PyConfig_Clear(&config)
 	config.ParseArgv = 0
 	config.SafePath = 1
 	config.UserSiteDirectory = 0
 	config.InstallSignalHandlers = 0
+	log.Printf("config: %p", &config)
 
 	home := "/Users/dv/src/gogopython/venv"
 	status = PyConfig_SetBytesString(&config, &config.Home, home)
@@ -70,52 +71,49 @@ func main() {
 	}
 	log.Println("set path:", path)
 
+	/////////
+
 	status = Py_InitializeFromConfig(&config)
 	if status.Type != 0 {
 		log.Fatalln("failed to initialize Python:", PyBytesToString(status.ErrMsg))
 	}
 	log.Println("initialized")
-	defer Py_FinalizeEx()
 
-	log.Println("GIL held?", PyGILState_Check())
+	// Create a sub-interpreter to partially isolate the script.
+	interpreterConfig := PyInterpreterConfig{}
+	interpreterConfig.Gil = SharedGil
+	interpreterConfig.AllowThreads = 1
+	interpreterConfig.CheckMultiInterpExtensions = 1
+	log.Printf("interpreter config: %p", &interpreterConfig)
 
-	// Globals and Locals
-	globals := PyDict_New()
-	defer Py_DecRef(globals)
-	locals := PyDict_New()
-	defer Py_DecRef(locals)
+	mainStatePtr := PyThreadState_Get()
 
-	// This is the input.
-	this := PyDict_New()
-	defer Py_DecRef(this)
-	proxy := PyDictProxy_New(this)
-	defer Py_DecRef(proxy)
+	PyEval_ReleaseThread(mainStatePtr)
 
-	PyDict_SetItemString(this, "junk", PyDict_New())
+	gil := PyGILState_Ensure()
+	print_current_interpreter()
+	PyThreadState_Swap(NullThreadState)
 
-	// Root is the output.
-	root := PyDict_New()
-	defer Py_DecRef(root)
-
-	state := PyEval_SaveThread()
-	log.Println("GIL held?", PyGILState_Check())
-	PyEval_RestoreThread(state)
-	log.Println("GIL held?", PyGILState_Check())
-
-	if PyDict_SetItemString(globals, "this", proxy) != 0 {
-		log.Fatalln("failed to add 'this' proxy to globals")
+	var subThreadPtr PyThreadStatePtr
+	status = Py_NewInterpreterFromConfig(&subThreadPtr, &interpreterConfig)
+	if status.Type != 0 {
+		log.Fatalln("failed to create sub-interpreter:", PyBytesToString(status.ErrMsg))
 	}
-	if PyDict_SetItemString(globals, "root", root) != 0 {
-		log.Fatalln("failed to add 'root' to globals")
-	}
+	print_current_interpreter()
+	Py_EndInterpreter(subThreadPtr)
 
-	program := `
-print(this)
-this["junk"].update({"name": "Dave"})
-print(this)
-`
-	if PyRun_String(program, PyFileInput, globals, locals) == nil {
-		PyErr_Print()
-		PyErr_Clear()
-	}
+	PyThreadState_Swap(mainStatePtr)
+	print_current_interpreter()
+	PyGILState_Release(gil)
+
+	PyEval_RestoreThread(mainStatePtr)
+	Py_FinalizeEx()
+}
+
+func print_current_interpreter() {
+	ts := PyThreadState_Get()
+	me := PyThreadState_GetInterpreter(ts)
+	id := PyInterpreterState_GetID(me)
+	log.Printf("interp 0x%x, ts 0x%x, id %d\n", me, ts, id)
+	PyRun_SimpleString("import sys; print('id(modules) =', id(sys.modules)); sys.stdout.flush()")
 }
