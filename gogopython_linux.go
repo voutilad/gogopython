@@ -34,7 +34,7 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 	}
 	Py_PreInitialize = func(cfg *PyPreConfig) PyStatus {
 		var status PyStatus
-		ffi.Call(&cifPy_PreInitialize, symPy_PreInitialize, unsafe.Pointer(&status), unsafe.Pointer(cfg))
+		ffi.Call(&cifPy_PreInitialize, symPy_PreInitialize, unsafe.Pointer(&status), unsafe.Pointer(&cfg))
 		return status
 	}
 
