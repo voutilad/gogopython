@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"runtime"
 	"strings"
 	"sync/atomic"
 
@@ -9,6 +11,11 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 3 {
+		log.Fatalf("usage: main [python home/venv] paths...")
+	}
+	args := os.Args[1:]
+
 	err := py.Load_library()
 	if err != nil {
 		log.Fatalln(err)
@@ -41,18 +48,16 @@ func main() {
 	config.InstallSignalHandlers = 0
 	log.Printf("config: %p", &config)
 
-	home := "/Users/dv/src/gogopython/venv"
+	home := args[0]
+	log.Println("using home:", home)
 	status = py.PyConfig_SetBytesString(&config, &config.Home, home)
 	if status.Type != 0 {
 		log.Fatalln("failed to set home:", py.PyBytesToString(status.ErrMsg))
 	}
 	log.Println("set home:", home)
 
-	path := strings.Join([]string{
-		"/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12",
-		"/opt/homebrew/Cellar/python@3.12/3.12.4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload",
-		"/Users/dv/src/gogopython/venv/lib/python3.12/site-packages",
-	}, ":")
+	path := strings.Join(args[1:], ":")
+	log.Println("using path:", path)
 	status = py.PyConfig_SetBytesString(&config, &config.PythonPathEnv, path)
 	if status.Type != 0 {
 		log.Fatalln("failed to set path:", py.PyBytesToString(status.ErrMsg))
@@ -96,7 +101,7 @@ func main() {
 	log.Println("launching go routine")
 	go func() {
 		log.Println("go routine starting")
-
+		runtime.LockOSThread()
 		ts := py.PyThreadState_New(subint)
 
 		log.Println("created new thread state")
@@ -114,7 +119,7 @@ func main() {
 
 		py.PyThreadState_DeleteCurrent()
 		log.Println("go routine ending")
-
+		runtime.UnlockOSThread()
 		signal.Store(false)
 	}()
 
