@@ -310,11 +310,7 @@ func Load_library() error {
 	case "darwin":
 		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
 	case "linux":
-		// Need to update purego to handle unmarshaling structs returned on the stack.
-		// Python functions sometimes return a PyStatus object. So, so annoying. Who
-		// does this?! I guess it's a consequence of being written for i386...sigh.
-		log.Fatalln("ugh, python does dumb things like returning a struct on the stack...no worky yet on Linux")
-		// library = "libpython3.so"
+		library = "libpython3.so"
 	default:
 		log.Fatalln("unsupported runtime:", os)
 	}
