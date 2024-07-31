@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strings"
+	"sync/atomic"
 
 	py "github.com/voutilad/gogopython"
 )
@@ -56,42 +57,89 @@ func main() {
 	}
 	log.Println("set path:", path)
 
-	/////////
-
+	// Initialize our main interpreter in our main go routine.
 	status = py.Py_InitializeFromConfig(&config)
 	if status.Type != 0 {
 		log.Fatalln("failed to initialize Python:", py.PyBytesToString(status.ErrMsg))
 	}
 	log.Println("initialized")
+	mainTs := py.PyThreadState_Get()
+	//mainInt := py.PyInterpreterState_Get()
 
-	// Create a sub-interpreter to partially isolate the script.
-	interpreterConfig := py.PyInterpreterConfig{}
-	interpreterConfig.Gil = py.DefaultGil // OwnGil works in 3.12, but is hard to use.
-	interpreterConfig.CheckMultiInterpExtensions = 1
-	log.Printf("interpreter config: %p", &interpreterConfig)
-
-	mainStatePtr := py.PyThreadState_Get()
-
-	//PyEval_ReleaseThread(mainStatePtr)
-
-	gil := py.PyGILState_Ensure()
+	// Add a GIL reference, print, and drop our thread state.
+	//gil := py.PyGILState_Ensure()
 	print_current_interpreter()
 	py.PyThreadState_Swap(py.NullThreadState)
 
+	// Create a Subinterpreter in our main go routine so it's tied to the current thread.
 	var subThreadPtr py.PyThreadStatePtr
+	interpreterConfig := py.PyInterpreterConfig{}
+	interpreterConfig.Gil = py.DefaultGil // OwnGil works in 3.12, but is hard to use.
+	interpreterConfig.CheckMultiInterpExtensions = 1
 	status = py.Py_NewInterpreterFromConfig(&subThreadPtr, &interpreterConfig)
 	if status.Type != 0 {
 		log.Fatalln("failed to create sub-interpreter:", py.PyBytesToString(status.ErrMsg))
 	}
 	print_current_interpreter()
 
-	py.Py_EndInterpreter(subThreadPtr)
+	// Get a pointer to our interpreter state, which should not be thread local afaik.
+	subint := py.PyInterpreterState_Get()
 
-	py.PyThreadState_Swap(mainStatePtr)
+	// Remove our threadstate and release the GIL
+	ts := py.PyEval_SaveThread()
+
+	// Launch a go routine and busy wait for it to finish (trying to force another os thread to pick it up)
+	var signal atomic.Bool
+	signal.Store(true)
+	log.Println("launching go routine")
+	go func() {
+		log.Println("go routine starting")
+
+		ts := py.PyThreadState_New(subint)
+
+		log.Println("created new thread state")
+
+		log.Printf("gil? %d\n", py.PyGILState_Check())
+		py.PyEval_RestoreThread(ts)
+
+		print_current_interpreter()
+
+		log.Println("go routine running python script")
+		py.PyRun_SimpleString("import time; print('python is sleeping'); time.sleep(1); print('python is awake!')")
+
+		log.Println("clearing thread state")
+		py.PyThreadState_Clear(ts)
+
+		py.PyThreadState_DeleteCurrent()
+		log.Println("go routine ending")
+
+		signal.Store(false)
+	}()
+
+	working := true
+	for working {
+		// busy busy busy
+		working = signal.Load()
+	}
+	log.Println("go routine looks fininshed")
+
+	py.PyEval_RestoreThread(ts)
+	log.Println("reloaded subthread state on main go routine")
 	print_current_interpreter()
-	py.PyGILState_Release(gil)
 
-	//PyEval_RestoreThread(mainStatePtr)
+	py.PyThreadState_Clear(ts)
+	log.Println("cleared subthread state on main go routine")
+
+	py.PyInterpreterState_Clear(subint)
+	log.Println("reset interpreter on main go routine")
+
+	py.PyInterpreterState_Delete(subint)
+	log.Println("deleted sub interpreter state on main go routine")
+
+	py.PyEval_RestoreThread(mainTs)
+	log.Println("restored main thread on main go routine")
+	print_current_interpreter()
+
 	py.Py_FinalizeEx()
 }
 

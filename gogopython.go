@@ -199,6 +199,7 @@ var (
 	PyEval_RestoreThread func(PyThreadStatePtr)
 
 	PyThreadState_Get            func() PyThreadStatePtr
+	PyThreadState_New            func(PyInterpreterStatePtr) PyThreadStatePtr
 	PyThreadState_Swap           func(PyThreadStatePtr) PyThreadStatePtr
 	PyThreadState_Clear          func(PyThreadStatePtr)
 	PyThreadState_Delete         func(PyThreadStatePtr)
@@ -270,6 +271,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyEval_RestoreThread, lib, "PyEval_RestoreThread")
 
 	purego.RegisterLibFunc(&PyThreadState_Get, lib, "PyThreadState_Get")
+	purego.RegisterLibFunc(&PyThreadState_New, lib, "PyThreadState_New")
 	purego.RegisterLibFunc(&PyThreadState_Swap, lib, "PyThreadState_Swap")
 	purego.RegisterLibFunc(&PyThreadState_Clear, lib, "PyThreadState_Clear")
 	purego.RegisterLibFunc(&PyThreadState_Delete, lib, "PyThreadState_Delete")
