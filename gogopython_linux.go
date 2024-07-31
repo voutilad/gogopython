@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var TypeStatus = ffi.Type{Type: ffi.Struct, Elements: &[]*ffi.Type{&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32}}
+var TypeStatus = ffi.Type{Type: ffi.Struct, Elements: &[]*ffi.Type{&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32}[0]}
 
 var (
 	Py_PreInitialize func(*PyPreConfig) PyStatus
@@ -34,7 +34,7 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 	}
 	Py_PreInitialize = func(cfg *PyPreConfig) PyStatus {
 		var status PyStatus
-		ffi.Call(&status, symPy_PreInitialize, unsafe.Pointer(&status), unsafe.Pointer(cfg))
+		ffi.Call(&cifPy_PreInitialize, symPy_PreInitialize, unsafe.Pointer(&status), unsafe.Pointer(cfg))
 		return status
 	}
 
@@ -50,7 +50,7 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 	}
 	Py_InitializeFromConfig = func(cfg *PyConfig_3_12) PyStatus {
 		var status PyStatus
-		ffi.Call(&status, symPy_InitializeFromConfig, unsafe.Pointer(&status), unsafe.Pointer(&cfg))
+		ffi.Call(&cifPy_InitializeFromConfig, symPy_InitializeFromConfig, unsafe.Pointer(&status), unsafe.Pointer(&cfg))
 		return status
 	}
 
@@ -67,7 +67,7 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 	PyConfig_SetBytesString = func(cfg *PyConfig_3_12, wchar *WCharPtr, s string) PyStatus {
 		var status PyStatus
 		text, _ := unix.BytePtrFromString(s)
-		ffi.Call(&status, symPyConfig_SetBytesString, unsafe.Pointer(&status), unsafe.Pointer(cfg), unsafe.Pointer(&wchar), unsafe.Pointer(&text))
+		ffi.Call(&cifPyConfig_SetBytesString, symPyConfig_SetBytesString, unsafe.Pointer(&status), unsafe.Pointer(cfg), unsafe.Pointer(&wchar), unsafe.Pointer(&text))
 		return status
 	}
 
@@ -83,7 +83,7 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 	}
 	Py_NewInterpreterFromConfig = func(state *PyThreadStatePtr, c *PyInterpreterConfig) PyStatus {
 		var status PyStatus
-		ffi.Call(&status, symPy_NewInterpreterFromConfig, unsafe.Pointer(&status), unsafe.Pointer(&state), unsafe.Pointer(&c))
+		ffi.Call(&cifPy_NewInterpreterFromConfig, symPy_NewInterpreterFromConfig, unsafe.Pointer(&status), unsafe.Pointer(&state), unsafe.Pointer(&c))
 		return status
 	}
 
