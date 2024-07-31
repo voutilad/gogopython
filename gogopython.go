@@ -315,7 +315,7 @@ func Load_library() error {
 		log.Fatalln("unsupported runtime:", os)
 	}
 
-	lib, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	lib, err := purego.Dlopen(library, purego.RTLD_LAZY)
 	if err != nil {
 		return err
 	}

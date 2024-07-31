@@ -18,3 +18,6 @@ Run the test program:
 go run cmd/main.go [your home] [each path entry]
 ```
 
+> note: home and path entries _are_ optional, but if you're trying to use a
+> virtualenv you'll need to set them
+

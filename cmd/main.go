@@ -11,10 +11,14 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		log.Fatalf("usage: main [python home/venv] paths...")
+	home := ""
+	path := ""
+	if len(os.Args) > 1 {
+		home = os.Args[1]
 	}
-	args := os.Args[1:]
+	if len(os.Args) > 2 {
+		path = strings.Join(os.Args[2:], ":")
+	}
 
 	err := py.Load_library()
 	if err != nil {
@@ -48,7 +52,6 @@ func main() {
 	config.InstallSignalHandlers = 0
 	log.Printf("config: %p", &config)
 
-	home := args[0]
 	log.Println("using home:", home)
 	status = py.PyConfig_SetBytesString(&config, &config.Home, home)
 	if status.Type != 0 {
@@ -56,7 +59,6 @@ func main() {
 	}
 	log.Println("set home:", home)
 
-	path := strings.Join(args[1:], ":")
 	log.Println("using path:", path)
 	status = py.PyConfig_SetBytesString(&config, &config.PythonPathEnv, path)
 	if status.Type != 0 {
