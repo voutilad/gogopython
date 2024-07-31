@@ -172,19 +172,14 @@ var (
 	Py_EncodeLocale func(WCharPtr, uint64) string
 
 	PyPreConfig_InitIsolatedConfig func(*PyPreConfig)
-	Py_PreInitialize               func(*PyPreConfig) PyStatus
 
 	PyConfig_InitPythonConfig         func(*PyConfig_3_12)
 	PyConfig_InitIsolatedPythonConfig func(*PyConfig_3_12)
-	PyConfig_SetBytesString           func(*PyConfig_3_12, *WCharPtr, string) PyStatus
 	PyConfig_Clear                    func(*PyConfig_3_12)
-	Py_InitializeFromConfig           func(*PyConfig_3_12) PyStatus
-	PyConfig_Read                     func(*PyConfig_3_12) PyStatus
 
 	Py_FinalizeEx func() int32
 
-	Py_NewInterpreterFromConfig func(state *PyThreadStatePtr, c *PyInterpreterConfig) PyStatus
-	Py_EndInterpreter           func(PyThreadStatePtr)
+	Py_EndInterpreter func(PyThreadStatePtr)
 
 	// Check if we have the GIL. 1 if true, 0 if false.
 	PyGILState_Check func() int32
@@ -247,18 +242,13 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&Py_EncodeLocale, lib, "Py_EncodeLocale")
 
 	purego.RegisterLibFunc(&PyPreConfig_InitIsolatedConfig, lib, "PyPreConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&Py_PreInitialize, lib, "Py_PreInitialize")
-	purego.RegisterLibFunc(&Py_InitializeFromConfig, lib, "Py_InitializeFromConfig")
 
 	purego.RegisterLibFunc(&PyConfig_InitPythonConfig, lib, "PyConfig_InitPythonConfig")
 	purego.RegisterLibFunc(&PyConfig_InitIsolatedPythonConfig, lib, "PyConfig_InitIsolatedConfig")
-	purego.RegisterLibFunc(&PyConfig_SetBytesString, lib, "PyConfig_SetBytesString")
 	purego.RegisterLibFunc(&PyConfig_Clear, lib, "PyConfig_Clear")
-	purego.RegisterLibFunc(&PyConfig_Read, lib, "PyConfig_Read")
 
 	purego.RegisterLibFunc(&Py_FinalizeEx, lib, "Py_FinalizeEx")
 
-	purego.RegisterLibFunc(&Py_NewInterpreterFromConfig, lib, "Py_NewInterpreterFromConfig")
 	purego.RegisterLibFunc(&Py_EndInterpreter, lib, "Py_EndInterpreter")
 
 	purego.RegisterLibFunc(&PyGILState_Check, lib, "PyGILState_Check")
@@ -310,6 +300,8 @@ func registerFuncs(lib PythonLibraryPtr) {
 
 	purego.RegisterLibFunc(&PyErr_Clear, lib, "PyErr_Clear")
 	purego.RegisterLibFunc(&PyErr_Print, lib, "PyErr_Print")
+
+	registerFuncsPlatDependent(lib)
 }
 
 func Load_library() error {

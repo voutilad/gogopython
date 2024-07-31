@@ -19,7 +19,9 @@ func main() {
 	preConfig := py.PyPreConfig{}
 	py.PyPreConfig_InitIsolatedConfig(&preConfig)
 	preConfig.Allocator = 3
-	status := py.Py_PreInitialize(&preConfig)
+	var status py.PyStatus
+	status = py.Py_PreInitialize(&preConfig)
+	log.Println("HERE")
 	if status.Type != 0 {
 		log.Fatalln("failed to preinitialize python:", py.PyBytesToString(status.ErrMsg))
 	}
