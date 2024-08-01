@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var TypeStatus = ffi.Type{Type: ffi.Struct, Elements: &[]*ffi.Type{&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32}[0]}
+var TypeStatus = ffi.Type{Type: ffi.Struct, Elements: &[]*ffi.Type{&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, nil}[0]}
 
 var (
 	Py_PreInitialize func(*PyPreConfig) PyStatus
