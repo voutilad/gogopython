@@ -118,15 +118,33 @@ func main() {
 
 		globals := py.PyDict_New()
 		locals := py.PyDict_New()
-		program := "x = {'name': 'dave'}"
+
+		py.PyRun_String(`
+global content
+def content():
+	global __content__
+	return __content__
+		`, py.PyFileInput, globals, locals)
+
+		bytes := py.PyBytes_FromString("hello world")
+		py.PyDict_SetItemString(globals, "__content__", bytes)
+		py.Py_DecRef(bytes)
+
+		program := `
+x = {"name": "Dave"}
+print(content())
+`
 		output := py.PyRun_String(program, py.PyFileInput, globals, locals)
 		if output == py.NullPyObjectPtr {
 			log.Println("null result? Huh.")
 		} else {
-			x := py.PyDict_GetItemString(locals, "x")
+			x := py.PyDict_GetItemString(globals, "x")
 			outputType := py.Py_BaseType(x)
 			log.Println("base type is dict?:", outputType == py.Dict)
 		}
+
+		py.Py_DecRef(globals)
+		py.Py_DecRef(locals)
 
 		log.Println("clearing thread state")
 		py.PyThreadState_Clear(ts)
