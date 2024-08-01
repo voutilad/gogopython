@@ -133,14 +133,25 @@ def content():
 		program := `
 x = {"name": "Dave"}
 print(content())
+root = "hello world"
 `
 		output := py.PyRun_String(program, py.PyFileInput, globals, locals)
 		if output == py.NullPyObjectPtr {
-			log.Println("null result? Huh.")
+			log.Fatalln("null result? Huh.")
 		} else {
-			x := py.PyDict_GetItemString(globals, "x")
+			x := py.PyDict_GetItemString(locals, "x")
 			outputType := py.Py_BaseType(x)
 			log.Println("base type is dict?:", outputType == py.Dict)
+
+			// extract our message string
+			root := py.PyDict_GetItemString(locals, "root")
+			if root == py.NullPyObjectPtr {
+				log.Fatalln("no root object found?")
+			}
+			msg := py.PyUnicode_AsWideCharString(root, nil)
+			defer py.PyMem_Free(msg)
+			s := py.Py_EncodeLocale(msg, nil)
+			log.Println("message:", s)
 		}
 
 		py.Py_DecRef(globals)

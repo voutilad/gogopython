@@ -197,8 +197,8 @@ type PyInterpreterStatePtr uintptr
 const NullThreadState PyThreadStatePtr = 0
 
 var (
-	Py_DecodeLocale func(string, uint64) WCharPtr
-	Py_EncodeLocale func(WCharPtr, uint64) string
+	Py_DecodeLocale func(string, *int) WCharPtr
+	Py_EncodeLocale func(WCharPtr, *int) string
 
 	PyPreConfig_InitIsolatedConfig func(*PyPreConfig)
 
@@ -269,12 +269,19 @@ var (
 	PyBytes_FromString            func(string) PyObjectPtr
 	PyBytes_FromStringAndSize     func(*byte, int) PyObjectPtr
 	PyByteArray_FromStringAndSize func(*byte, int) PyObjectPtr
+	PyBytes_AsString              func(PyObjectPtr) *byte
+	PyBytes_Size                  func(PyObjectPtr) int
+
+	PyUnicode_FromString       func(string) PyObjectPtr
+	PyUnicode_AsWideCharString func(PyObjectPtr, *int) WCharPtr
 
 	Py_DecRef func(PyObjectPtr)
 	Py_IncRef func(PyObjectPtr)
 
 	PyErr_Clear func()
 	PyErr_Print func()
+
+	PyMem_Free func(*byte)
 
 	PyObject_Type   func(PyObjectPtr) PyTypeObjectPtr
 	PyType_GetFlags func(PyTypeObjectPtr) uint64
@@ -394,12 +401,19 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyBytes_FromString, lib, "PyBytes_FromString")
 	purego.RegisterLibFunc(&PyBytes_FromStringAndSize, lib, "PyBytes_FromStringAndSize")
 	purego.RegisterLibFunc(&PyByteArray_FromStringAndSize, lib, "PyByteArray_FromStringAndSize")
+	purego.RegisterLibFunc(&PyBytes_AsString, lib, "PyBytes_AsString")
+	purego.RegisterLibFunc(&PyBytes_Size, lib, "PyBytes_Size")
+
+	purego.RegisterLibFunc(&PyUnicode_FromString, lib, "PyUnicode_FromString")
+	purego.RegisterLibFunc(&PyUnicode_AsWideCharString, lib, "PyUnicode_AsWideCharString")
 
 	purego.RegisterLibFunc(&Py_DecRef, lib, "Py_DecRef")
 	purego.RegisterLibFunc(&Py_IncRef, lib, "Py_IncRef")
 
 	purego.RegisterLibFunc(&PyErr_Clear, lib, "PyErr_Clear")
 	purego.RegisterLibFunc(&PyErr_Print, lib, "PyErr_Print")
+
+	purego.RegisterLibFunc(&PyMem_Free, lib, "PyMem_Free")
 
 	purego.RegisterLibFunc(&PyObject_Type, lib, "PyObject_Type")
 	purego.RegisterLibFunc(&PyType_GetFlags, lib, "PyType_GetFlags")
