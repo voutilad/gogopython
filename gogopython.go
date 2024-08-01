@@ -435,7 +435,10 @@ func Load_library(exe string) error {
 			return err
 		}
 	case "linux":
-		library = "libpython3.so"
+		library, err = findLibraryOnLinux(exe)
+		if err != nil {
+			return err
+		}
 	default:
 		log.Fatalln("unsupported runtime:", os)
 	}
@@ -448,6 +451,30 @@ func Load_library(exe string) error {
 	registerFuncs(lib)
 
 	return nil
+}
+
+// XXX move to gogopython_linux?
+func findLibraryOnLinux(exe string) (string, error) {
+	lib := ""
+
+	// One approach is, assuming setuputils is available, is to use distutils.
+	cmd := exec.Command(exe, "-c", "from distutils import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return lib, err
+	}
+	if err = cmd.Start(); err != nil {
+		return lib, err
+	}
+	base, err := bufio.NewReader(stdout).ReadString(byte('\n'))
+	if err != nil {
+		return lib, err
+	}
+	if err = cmd.Wait(); err != nil {
+		return lib, err
+	}
+	lib = strings.TrimRight(base, " \n") + "/libpython3.12.so.1"
+	return lib, nil
 }
 
 // Try using otool to find the Python library.
