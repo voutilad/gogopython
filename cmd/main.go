@@ -116,6 +116,18 @@ func main() {
 		log.Println("go routine running python script")
 		py.PyRun_SimpleString("import time; print('python is sleeping'); time.sleep(0.2); print('python is awake!')")
 
+		globals := py.PyDict_New()
+		locals := py.PyDict_New()
+		program := "x = {'name': 'dave'}"
+		output := py.PyRun_String(program, py.PyFileInput, globals, locals)
+		if output == py.NullPyObjectPtr {
+			log.Println("null result? Huh.")
+		} else {
+			x := py.PyDict_GetItemString(locals, "x")
+			outputType := py.Py_BaseType(x)
+			log.Println("base type is dict?:", outputType == py.Dict)
+		}
+
 		log.Println("clearing thread state")
 		py.PyThreadState_Clear(ts)
 
