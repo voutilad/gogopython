@@ -73,10 +73,8 @@ func main() {
 	}
 	log.Println("initialized")
 	mainTs := py.PyThreadState_Get()
-	//mainInt := py.PyInterpreterState_Get()
 
 	// Add a GIL reference, print, and drop our thread state.
-	//gil := py.PyGILState_Ensure()
 	print_current_interpreter()
 	py.PyThreadState_Swap(py.NullThreadState)
 
