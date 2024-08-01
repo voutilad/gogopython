@@ -430,7 +430,7 @@ func Load_library(exe string) error {
 	case "darwin":
 		dll = "libpython3.12.dylib"
 	case "linux":
-		dll = "libpython3.12.so.1"
+		dll = "libpython3.12.so.1.0" // todo: maybe find this dynamically?
 	default:
 		log.Fatalln("unsupported runtime:", os)
 	}
