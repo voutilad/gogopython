@@ -20,7 +20,7 @@ func main() {
 		path = strings.Join(os.Args[2:], ":")
 	}
 
-	err := py.Load_library()
+	err := py.Load_library("python3")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -114,7 +114,7 @@ func main() {
 		print_current_interpreter()
 
 		log.Println("go routine running python script")
-		py.PyRun_SimpleString("import time; print('python is sleeping'); time.sleep(1); print('python is awake!')")
+		py.PyRun_SimpleString("import time; print('python is sleeping'); time.sleep(0.2); print('python is awake!')")
 
 		log.Println("clearing thread state")
 		py.PyThreadState_Clear(ts)

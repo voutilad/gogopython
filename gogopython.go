@@ -1,8 +1,12 @@
 package gogopython
 
 import (
+	"bufio"
+	"errors"
 	"log"
+	"os/exec"
 	"runtime"
+	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -304,11 +308,19 @@ func registerFuncs(lib PythonLibraryPtr) {
 	registerFuncsPlatDependent(lib)
 }
 
-func Load_library() error {
+func Load_library(exe string) error {
 	var library string
+	var err error
+
 	switch os := runtime.GOOS; os {
 	case "darwin":
-		library = "/opt/homebrew/opt/python3/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib"
+		// On macOS, let's assume Python3 was installed not via XCode
+		// (which ships a fat binary with amd64 & arm64).
+		// We can use otool, if available, to find the python framework.
+		library, err = findLibraryOnMacOS(exe)
+		if err != nil {
+			return err
+		}
 	case "linux":
 		library = "libpython3.so"
 	default:
@@ -319,9 +331,59 @@ func Load_library() error {
 	if err != nil {
 		return err
 	}
-	log.Println("dlopen'ed library", library)
 
 	registerFuncs(lib)
-	log.Println("registered python functions")
+
 	return nil
+}
+
+// Try using otool to find the Python library.
+// XXX maybe move this to gogopython_darwin.go?
+func findLibraryOnMacOS(exe string) (string, error) {
+	lib := ""
+
+	// First resolve the location if we're given just "python3"
+	cmd := exec.Command("command", "-v", exe)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return lib, err
+	}
+	if err = cmd.Start(); err != nil {
+		return lib, err
+	}
+	path, err := bufio.NewReader(stdout).ReadString(byte('\n'))
+	if err != nil {
+		return lib, err
+	}
+	if err = cmd.Wait(); err != nil {
+		return lib, err
+	}
+
+	cmd = exec.Command("otool", "-L", strings.TrimRight(path, "\n"))
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		return lib, err
+	}
+
+	if err = cmd.Start(); err != nil {
+		return lib, err
+	}
+
+	scanner := bufio.NewScanner(bufio.NewReader(stdout))
+	for scanner.Scan() {
+		// We should have a line pointing to a Python.framework location.
+		text := scanner.Text()
+		log.Printf("text: %s\n", text)
+		if len(lib) == 0 && strings.Contains(text, "Python.framework") {
+			// Should look something like:
+			//    /something/Python.framework/Versions/3.12/Python (compatibility ...)
+			parts := strings.SplitAfterN(strings.TrimLeft(text, " \t"), " ", 2)
+			if len(parts) < 2 {
+				return "", errors.New("could not parse otool output")
+			}
+			lib = strings.TrimRight(parts[0], " ")
+		}
+	}
+	err = cmd.Wait()
+	return lib, err
 }
