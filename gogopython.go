@@ -457,6 +457,7 @@ func Load_library(exe string) error {
 func findLibraryOnLinux(exe string) (string, error) {
 	lib := ""
 
+	// todo: context with deadline
 	// One approach is, assuming setuputils is available, is to use distutils.
 	cmd := exec.Command(exe, "-c", "from distutils import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 	stdout, err := cmd.StdoutPipe()
@@ -473,7 +474,14 @@ func findLibraryOnLinux(exe string) (string, error) {
 	if err = cmd.Wait(); err != nil {
 		return lib, err
 	}
-	lib = strings.TrimRight(base, " \n") + "/libpython3.12.so.1"
+
+	if base == "" {
+		// guess for now :( works on Fedora 40
+		lib = "libpython3.so"
+	} else {
+		// XXX Todo: identify python version 3.12 or newer
+		lib = strings.TrimRight(base, " \n") + "/libpython3.12.so.1.0"
+	}
 	return lib, nil
 }
 
@@ -482,6 +490,7 @@ func findLibraryOnLinux(exe string) (string, error) {
 func findLibraryOnMacOS(exe string) (string, error) {
 	lib := ""
 
+	// todo: context with deadline
 	// First resolve the location if we're given just "python3"
 	cmd := exec.Command("command", "-v", exe)
 	stdout, err := cmd.StdoutPipe()
