@@ -421,27 +421,25 @@ func registerFuncs(lib PythonLibraryPtr) {
 	registerFuncsPlatDependent(lib)
 }
 
+// Given a Python binary, load the appropriate dynamic library and its functions.
 func Load_library(exe string) error {
-	var library string
+	var dll string
 	var err error
 
 	switch os := runtime.GOOS; os {
 	case "darwin":
-		// On macOS, let's assume Python3 was installed not via XCode
-		// (which ships a fat binary with amd64 & arm64).
-		// We can use otool, if available, to find the python framework.
-		library, err = findLibraryOnMacOS(exe)
-		if err != nil {
-			return err
-		}
+		dll = "libpython3.12.dylib"
 	case "linux":
-		library, err = findLibraryOnLinux(exe)
-		if err != nil {
-			return err
-		}
+		dll = "libpython3.12.so.1"
 	default:
 		log.Fatalln("unsupported runtime:", os)
 	}
+
+	base, err := findLibraryBaseUsingDistutils(exe)
+	if err != nil {
+		log.Fatalln("failed to find library base:", err)
+	}
+	library := *base + "/" + dll
 
 	lib, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
@@ -453,85 +451,29 @@ func Load_library(exe string) error {
 	return nil
 }
 
-// XXX move to gogopython_linux?
-func findLibraryOnLinux(exe string) (string, error) {
-	lib := ""
-
+// Find the location of the dynamic library.
+func findLibraryBaseUsingDistutils(exe string) (*string, error) {
 	// todo: context with deadline
 	// One approach is, assuming setuputils is available, is to use distutils.
 	cmd := exec.Command(exe, "-c", "from distutils import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return lib, err
+		return nil, err
 	}
 	if err = cmd.Start(); err != nil {
-		return lib, err
+		return nil, err
 	}
 	base, err := bufio.NewReader(stdout).ReadString(byte('\n'))
 	if err != nil {
-		return lib, err
+		return nil, err
 	}
 	if err = cmd.Wait(); err != nil {
-		return lib, err
+		return nil, err
 	}
 
-	if base == "" {
-		// guess for now :( works on Fedora 40
-		lib = "libpython3.so"
-	} else {
-		// XXX Todo: identify python version 3.12 or newer
-		lib = strings.TrimRight(base, " \n") + "/libpython3.12.so.1.0"
+	if base != "" {
+		lib := strings.TrimRight(base, " \n")
+		return &lib, nil
 	}
-	return lib, nil
-}
-
-// Try using otool to find the Python library.
-// XXX maybe move this to gogopython_darwin.go?
-func findLibraryOnMacOS(exe string) (string, error) {
-	lib := ""
-
-	// todo: context with deadline
-	// First resolve the location if we're given just "python3"
-	cmd := exec.Command("command", "-v", exe)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return lib, err
-	}
-	if err = cmd.Start(); err != nil {
-		return lib, err
-	}
-	path, err := bufio.NewReader(stdout).ReadString(byte('\n'))
-	if err != nil {
-		return lib, err
-	}
-	if err = cmd.Wait(); err != nil {
-		return lib, err
-	}
-
-	cmd = exec.Command("otool", "-L", strings.TrimRight(path, "\n"))
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		return lib, err
-	}
-
-	if err = cmd.Start(); err != nil {
-		return lib, err
-	}
-
-	scanner := bufio.NewScanner(bufio.NewReader(stdout))
-	for scanner.Scan() {
-		// We should have a line pointing to a Python.framework location.
-		text := scanner.Text()
-		if len(lib) == 0 && strings.Contains(text, "Python.framework") {
-			// Should look something like:
-			//    /something/Python.framework/Versions/3.12/Python (compatibility ...)
-			parts := strings.SplitAfterN(strings.TrimLeft(text, " \t"), " ", 2)
-			if len(parts) < 2 {
-				return "", errors.New("could not parse otool output")
-			}
-			lib = strings.TrimRight(parts[0], " ")
-		}
-	}
-	err = cmd.Wait()
-	return lib, err
+	return nil, errors.New("failed to find library base")
 }

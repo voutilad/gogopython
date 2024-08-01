@@ -12,6 +12,14 @@ CGO_ENABLED=0 go build
 like you would without Go. For an example of spinning up a sub-interpreter,
 see the example program in `cmd/main.go`.
 
+## Library Detection
+
+The biggest pain is finding the Python dynamic library. On some Linux systems,
+it must be installed separately (Debian-based distros for sure).
+
+```bash
+sudo apt install libpython3.12
+```
 
 ## Quick command line test
 
@@ -31,6 +39,8 @@ go run cmd/main.go [your home] [each path entry]
 > virtualenv you'll need to set them
 
 ## Known Issues
+
+- Requires Python 3.12 as it uses sub-interpreters. Sorry, not sorry.
 
 - Panics sometimes just happen during library loading, not sure why!
 
