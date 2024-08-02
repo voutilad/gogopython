@@ -30,20 +30,24 @@ On macOS, it will use `otool` to
 
 ## Quick command line test
 
-To run the test program, figure out your python home and paths:
-
-```bash
-python3 -c 'import sys; print(f"home={sys.prefix}\npaths={sys.path}")'
-```
-
-Run the test program:
+Simply point the test program at your Python3 binary.
 
 ```
-go run cmd/main.go [your home] [each path entry]
+# Create and activate virtual environment.
+python3 -m venv venv
+. venv/bin/activate
+
+# Install setuptools. This is used for library discovery.
+pip install setuptools
+
+# We no longer need the virtual environment enabled.
+deactivate
+
+# Run the test app.
+go run example/example.go ./venv/bin/python3
 ```
 
-> note: home and path entries _are_ optional, but if you're trying to use a
-> virtualenv you'll need to set them
+> Note: if on Linux, make sure you have `setuptools` installed.
 
 ## Known Issues
 

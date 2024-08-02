@@ -70,6 +70,18 @@ type PyStatus struct {
 	ExitCode int32
 }
 
+type PyMemAllocator = int32
+
+const (
+	PyMemAllocator_NotSet        = iota // Don't change allocator (use defaults).
+	PyMemAllocator_Default              // Use defaults allocators.
+	PyMemAllocator_Debug                // Default with debug hooks.
+	PyMemAllocator_Malloc               // Use malloc(3).
+	PyMemAllocator_MallocDebug          // Use malloc(3) with debug hooks.
+	PyMemAllocator_PyMalloc             // Use Python's pymalloc.
+	PyMemAllocator_PyMallocDebug        // Use Python's pymalloc with debug hooks.
+)
+
 type PyPreConfig struct {
 	ConfigInit        int32
 	ParseArgv         int32
@@ -81,7 +93,7 @@ type PyPreConfig struct {
 	// LegacyWindowsFSEncoding // only on Windows
 	Utf8Mode  int32
 	DevMode   int32
-	Allocator int32
+	Allocator PyMemAllocator
 }
 
 type pyWideStringList struct {
@@ -184,25 +196,45 @@ const (
 // Configuration for a sub-interpreter. All int32 values are really booleans,
 // so 0 = false, 1 = true. (Non-zero may also = true. Not sure!)
 type PyInterpreterConfig struct {
+	// Whether to share the main interpreters object allocator state.
+	//
+	// If this is 0, you must set CheckMultiInterpExtensions to 1.
+	// If this is 1, you must set Gil to OwnGil.
 	UseMainObMalloc int32
 
 	// Whether to allow using Python's os.fork funcion.
+	// Note: this doesn't block exec syscalls and subprocess module will still work.
 	AllowFork int32
 
 	// Whether to allow using Python's os.exec* functions.
+	// Note: this doesn't block exec syscalls and subprocess module will still work.
 	AllowExec int32
 
-	// Whether to allow creating Python threads.
+	// Whether to allow creating Python threads using the threading module.
 	AllowThreads int32
+
 	// Whether to allow creating Python daemon threads.
-	AllowDaemonThreads         int32
+	AllowDaemonThreads int32
+
+	// If 1, require multi-phase (non-legacy) extension modules. Must be 1 if you
+	// enable UseMainObMalloc.
 	CheckMultiInterpExtensions int32
-	Gil                        GilType
+
+	// The GIL mode for this sub-interpreter.
+	Gil GilType
 }
 
+// Opaque pointer to a Python ThreadState.
 type PyThreadStatePtr uintptr
+
+// Opaque pointer to a Python InterpreterState.
 type PyInterpreterStatePtr uintptr
 
+// NULL version of a Python ThreadState.
 const NullThreadState PyThreadStatePtr = 0
 
+// NULL version of a Python InterpreterState.
+const NullInterpreterState PyInterpreterStatePtr = 0
+
+// Opaque pointer to a Python dynamic library state in purego.
 type PythonLibraryPtr = uintptr

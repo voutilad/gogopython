@@ -165,6 +165,45 @@ func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
 	return nil, errors.New("failed to find library base")
 }
 
+// Python snippet for discoverying home and path.
+const helper string = "import sys; print(sys.prefix); [print(p) for p in sys.path if len(p) > 0]"
+
+// Use the provided Python executable to discovery the Python Home and
+// path settings.
+func FindPythonHomeAndPaths(exe string) (string, []string, error) {
+	home := ""
+
+	// Start with empty string, which is for the current directory.
+	// Without this, we can't load adjacent py files.
+	paths := []string{""}
+
+	cmd := exec.Command(exe, "-c", helper)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return home, paths, err
+	}
+	if err = cmd.Start(); err != nil {
+		return home, paths, err
+	}
+	scanner := bufio.NewScanner(bufio.NewReader(stdout))
+
+	// First line is our home, subsequent are the path
+	first := true
+	for scanner.Scan() {
+		text := scanner.Text()
+		if first {
+			home = text
+			first = false
+		} else {
+			paths = append(paths, text)
+		}
+	}
+	if err = cmd.Wait(); err != nil {
+		return home, paths, err
+	}
+	return home, paths, nil
+}
+
 // Extract a Go string from a Python *wchar_t.
 //
 // On failure, returns either an empty string or panics!
