@@ -59,8 +59,18 @@ var (
 	PyInterpreterState_Clear  func(PyInterpreterStatePtr)
 	PyInterpreterState_Delete func(PyInterpreterStatePtr)
 
-	PyRun_SimpleString func(string) int32
-	PyRun_String       func(s string, token StartToken, globals, locals PyObjectPtr) PyObjectPtr
+	// Run a given Python script in the current interpreter, returning an exit
+	// code based on if there was a Python exception raised.
+	PyRun_SimpleString func(script string) int32
+	// Run a given Python script in the current interpreter using the given
+	// StartToken mode and globals/locals dicts.
+	//
+	// Globals will be accessible like any global and the script can mutate the
+	// globals mapping using the "globals" keyword in the script.
+	//
+	// Locals will contain any declared local values from the script and is a
+	// simple way to "return" Python data.
+	PyRun_String func(script string, token StartToken, globals, locals PyObjectPtr) PyObjectPtr
 
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
