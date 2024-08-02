@@ -6,6 +6,8 @@ Python, but in Go.
 CGO_ENABLED=0 go build
 ```
 
+> Heads up: this currently requires Python 3.12. No if's, and's or but's.
+
 ## Using
 
 `gogopython` merely exposes the Python C-Api, so you'll need to use it just 
@@ -20,6 +22,11 @@ it must be installed separately (Debian-based distros for sure).
 ```bash
 sudo apt install libpython3.12
 ```
+
+`gogopython` will try to find the library using `distutils` via the given
+Python binary. This may require installing `setuptools` via `pip`.
+
+On macOS, it will use `otool` to 
 
 ## Quick command line test
 
@@ -41,8 +48,6 @@ go run cmd/main.go [your home] [each path entry]
 ## Known Issues
 
 - Requires Python 3.12 as it uses sub-interpreters. Sorry, not sorry.
-
-- Panics sometimes just happen during library loading, not sure why!
 
 - Linux requires a shim using the `ffi` Go module that uses `purego` 
   to leverage `libffi`, so on Linux `libffi` must be available. This

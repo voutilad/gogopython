@@ -11,16 +11,20 @@ import (
 )
 
 func main() {
+	exe := "python3"
 	home := ""
 	path := ""
 	if len(os.Args) > 1 {
-		home = os.Args[1]
+		exe = os.Args[1]
 	}
 	if len(os.Args) > 2 {
-		path = strings.Join(os.Args[2:], ":")
+		home = os.Args[2]
+	}
+	if len(os.Args) > 3 {
+		path = strings.Join(os.Args[3:], ":")
 	}
 
-	err := py.Load_library("python3")
+	err := py.Load_library(exe)
 	if err != nil {
 		log.Fatalln(err)
 	}
