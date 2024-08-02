@@ -101,6 +101,16 @@ type pyWideStringList struct {
 	Items  uintptr
 }
 
+// Python Interpreter Configuration
+//
+// This is a version-dependent structure, unfortunately. We need this because
+// it's the stable way of configuring the Home and Path (PythonPathEnv).
+//
+// Sadly this is also dependent on platform (Windows vs. not-Windows) and some
+// compile time decisions for the Python implementation (e.g. debug, stats).
+//
+// Ultimately, this should be made private and the configuration complexity
+// hidden from the programmer.
 type PyConfig_3_12 struct {
 	ConfigInit int32
 
