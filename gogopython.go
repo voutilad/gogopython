@@ -171,6 +171,7 @@ func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
 func PyBytesToString(b WCharPtr) string {
 	ptr := unsafe.Pointer(b)
 
+	// TODO: replace with unsafe call to extract the string?
 	for len := 0; len < 1024; len++ {
 		if *(*uint8)(ptr) == 0 {
 			return unsafe.String(b, len)
@@ -214,7 +215,7 @@ func Py_BaseType(obj PyObjectPtr) Type {
 			return Dict
 		}
 	} else {
-		// None's should have these set based on my inspection.
+		// Python "None" should have these set based on my inspection.
 		if (flags & noneMask) == noneMask {
 			return None
 		}

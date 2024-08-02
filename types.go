@@ -45,10 +45,12 @@ const (
 )
 
 const (
-	typeMask              = (0x3f << 24)
-	immutableFlag         = (1 << 8)
-	allowsSubclassingFlag = (1 << 10)
-	noneMask              = (immutableFlag | allowsSubclassingFlag)
+	typeMask              = (0x3f << 24) // flags mask to get type bits
+	immutableFlag         = (1 << 8)     // bit that describes an immutable object
+	allowsSubclassingFlag = (1 << 10)    // bit that describes if a type can be subclassed
+	// Our heuristic for detecting a Python None: it cannot be mutated and
+	// it cannot be subclassed.
+	noneMask = (immutableFlag | allowsSubclassingFlag)
 )
 
 // Return status of some specific Python C API calls.

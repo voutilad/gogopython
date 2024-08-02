@@ -111,6 +111,16 @@ var (
 	PyType_GetFlags func(PyTypeObjectPtr) uint64
 )
 
+// Our problem children. These all return PyStatus, a struct. These need
+// special handling to work on certain platforms like Linux due to how
+// purego is currently written.
+var (
+	Py_PreInitialize            func(*PyPreConfig) PyStatus
+	PyConfig_SetBytesString     func(*PyConfig_3_12, *WCharPtr, string) PyStatus
+	Py_InitializeFromConfig     func(*PyConfig_3_12) PyStatus
+	Py_NewInterpreterFromConfig func(state *PyThreadStatePtr, c *PyInterpreterConfig) PyStatus
+)
+
 func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&Py_DecodeLocale, lib, "Py_DecodeLocale")
 	purego.RegisterLibFunc(&Py_EncodeLocale, lib, "Py_EncodeLocale")
@@ -199,5 +209,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyObject_Type, lib, "PyObject_Type")
 	purego.RegisterLibFunc(&PyType_GetFlags, lib, "PyType_GetFlags")
 
+	// For the functions that return structs, we need to use some platform
+	// dependent approaches.
 	registerFuncsPlatDependent(lib)
 }

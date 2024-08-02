@@ -10,21 +10,24 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var TypeStatus = ffi.Type{Type: ffi.Struct, Elements: &[]*ffi.Type{&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, nil}[0]}
+// Python's PyStatus struct definition for use with libffi.
+var typePyStatus = ffi.Type{
+	Type: ffi.Struct,
+	Elements: &[]*ffi.Type{
+		&ffi.TypeSint32,  // status type
+		&ffi.TypePointer, // *wchar_t function name
+		&ffi.TypePointer, // *wchar_t error message
+		&ffi.TypeSint32,  // exit code
+		nil,
+	}[0],
+}
 
-var (
-	Py_PreInitialize func(*PyPreConfig) PyStatus
-
-	PyConfig_SetBytesString func(*PyConfig_3_12, *WCharPtr, string) PyStatus
-	Py_InitializeFromConfig func(*PyConfig_3_12) PyStatus
-
-	Py_NewInterpreterFromConfig func(state *PyThreadStatePtr, c *PyInterpreterConfig) PyStatus
-)
-
+// Register our problem child functions using [githubcom/jupiterrider/ffi],
+// which gives us the ability to handle returning structs on the stack.
 func registerFuncsPlatDependent(lib PythonLibraryPtr) {
-	// purego.RegisterLibFunc(&Py_PreInitialize, lib, "Py_PreInitialize")
+	// Py_PreInitialize
 	var cifPy_PreInitialize ffi.Cif
-	status := ffi.PrepCif(&cifPy_PreInitialize, ffi.DefaultAbi, 1, &TypeStatus, &ffi.TypePointer)
+	status := ffi.PrepCif(&cifPy_PreInitialize, ffi.DefaultAbi, 1, &typePyStatus, &ffi.TypePointer)
 	if status != ffi.OK {
 		panic(status)
 	}
@@ -38,9 +41,9 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 		return status
 	}
 
-	// purego.RegisterLibFunc(&Py_InitializeFromConfig, lib, "Py_InitializeFromConfig")
+	// Py_InitializeFromConfig
 	var cifPy_InitializeFromConfig ffi.Cif
-	status = ffi.PrepCif(&cifPy_InitializeFromConfig, ffi.DefaultAbi, 1, &TypeStatus, &ffi.TypePointer)
+	status = ffi.PrepCif(&cifPy_InitializeFromConfig, ffi.DefaultAbi, 1, &typePyStatus, &ffi.TypePointer)
 	if status != ffi.OK {
 		panic(status)
 	}
@@ -54,9 +57,9 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 		return status
 	}
 
-	// purego.RegisterLibFunc(&PyConfig_SetBytesString, lib, "PyConfig_SetBytesString")
+	// PyConfig_SetBytesString
 	var cifPyConfig_SetBytesString ffi.Cif
-	status = ffi.PrepCif(&cifPyConfig_SetBytesString, ffi.DefaultAbi, 3, &TypeStatus, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer)
+	status = ffi.PrepCif(&cifPyConfig_SetBytesString, ffi.DefaultAbi, 3, &typePyStatus, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer)
 	if status != ffi.OK {
 		panic(status)
 	}
@@ -71,9 +74,9 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 		return status
 	}
 
-	// purego.RegisterLibFunc(&Py_NewInterpreterFromConfig, lib, "Py_NewInterpreterFromConfig")
+	// Py_NewInterpreterFromConfig
 	var cifPy_NewInterpreterFromConfig ffi.Cif
-	status = ffi.PrepCif(&cifPy_NewInterpreterFromConfig, ffi.DefaultAbi, 2, &TypeStatus, &ffi.TypePointer, &ffi.TypePointer)
+	status = ffi.PrepCif(&cifPy_NewInterpreterFromConfig, ffi.DefaultAbi, 2, &typePyStatus, &ffi.TypePointer, &ffi.TypePointer)
 	if status != ffi.OK {
 		panic(status)
 	}
@@ -86,5 +89,4 @@ func registerFuncsPlatDependent(lib PythonLibraryPtr) {
 		ffi.Call(&cifPy_NewInterpreterFromConfig, symPy_NewInterpreterFromConfig, unsafe.Pointer(&status), unsafe.Pointer(&state), unsafe.Pointer(&c))
 		return status
 	}
-
 }
