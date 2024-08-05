@@ -40,23 +40,40 @@ const (
 type Type uint64
 
 const (
-	Long    Type = (1 << 24) // Python long.
-	List    Type = (1 << 25) // Python list.
-	Tuple   Type = (1 << 26) // Python tuple.
-	Bytes   Type = (1 << 27) // Python bytes (not bytearray).
-	String  Type = (1 << 28) // Python unicode string.
-	Dict    Type = (1 << 29) // Python dictionary.
-	None    Type = 0         // The Python "None" type.
-	Unknown Type = 1         // We have no idea what the type is...
+	Long    Type = (1 << 24)  // Python long.
+	List    Type = (1 << 25)  // Python list.
+	Tuple   Type = (1 << 26)  // Python tuple.
+	Bytes   Type = (1 << 27)  // Python bytes (not bytearray).
+	String  Type = (1 << 28)  // Python unicode string.
+	Dict    Type = (1 << 29)  // Python dictionary.
+	None    Type = 0          // The Python "None" type.
+	Float   Type = 1          // Python float.
+	Set     Type = 2          // Python set.
+	Unknown Type = 0xffffffff // We have no idea what the type is...
 )
 
 const (
 	typeMask              = (0x3f << 24) // flags mask to get type bits
+	builtIn               = (1 << 1)     // flags for built-in types
 	immutableFlag         = (1 << 8)     // bit that describes an immutable object
 	allowsSubclassingFlag = (1 << 10)    // bit that describes if a type can be subclassed
-	// Our heuristic for detecting a Python None: it cannot be mutated and
-	// it cannot be subclassed.
-	noneMask = (immutableFlag | allowsSubclassingFlag)
+	hasVectorCall         = (1 << 11)    // set if the type implements the vectorcall protocol (PEP 590)
+	ready                 = (1 << 12)    // type is fully initialized
+	supportsGc            = (1 << 14)    // Type supports garbage collection
+	validVersion          = (1 << 19)    // unused legacy flag
+	matchSelf             = (1 << 22)    // "undocumented" flag for some built-ins regarding pattern matching
+	itemsAtEnd            = (1 << 23)    // set if the type stores items at the end of instance memory
+
+	// Heuristic for detecting a Python None. Only these bits should be set.
+	noneMask = (builtIn | immutableFlag | ready | validVersion)
+
+	// Our heuristic for detecting a Python float since it's not a type in
+	// the set of types that have special bits.
+	floatMask = (noneMask | matchSelf)
+
+	// Our heuristic for detecting a Python set. It looks like a float, but
+	// supports garbage collection as it's a container.
+	setMask = (noneMask | matchSelf | supportsGc)
 )
 
 // Return status of some specific Python C API calls.

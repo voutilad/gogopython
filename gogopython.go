@@ -254,7 +254,13 @@ func Py_BaseType(obj PyObjectPtr) Type {
 			return Dict
 		}
 	} else {
-		// Python "None" should have these set based on my inspection.
+		// Set has more bits set, so check that first.
+		if (flags & setMask) == setMask {
+			return Set
+		}
+		if (flags & floatMask) == floatMask {
+			return Float
+		}
 		if (flags & noneMask) == noneMask {
 			return None
 		}

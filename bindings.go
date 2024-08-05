@@ -89,19 +89,25 @@ var (
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
 
-	PyBool_FromLong func(int) PyObjectPtr
+	PyBool_FromLong func(int64) PyObjectPtr
 
-	PyLong_FromLong             func(int) PyObjectPtr
-	PyLong_FromUnsignedLong     func(uint) PyObjectPtr
+	PyLong_AsLong               func(PyObjectPtr) int64
+	PyLong_AsLongAndOverflow    func(PyObjectPtr, *int64) int64
+	PyLong_AsUnsignedLong       func(PyObjectPtr) uint64
+	PyLong_FromLong             func(int64) PyObjectPtr
+	PyLong_FromUnsignedLong     func(uint64) PyObjectPtr
 	PyLong_FromLongLong         func(int64) PyObjectPtr
 	PyLong_FromUnsignedLongLong func(uint64) PyObjectPtr
+
+	PyFloat_AsDouble   func(PyObjectPtr) float64
+	PyFloat_FromDouble func(float64) PyObjectPtr
 
 	PyTuple_New     func(int64) PyObjectPtr
 	PyTuple_SetItem func(tuple PyObjectPtr, pos int64, item PyObjectPtr) int32
 
 	PyList_New     func(PyObjectPtr) int32
-	PyList_Size    func(PyObjectPtr) int
-	PyList_GetItem func(PyObjectPtr, int) PyObjectPtr
+	PyList_Size    func(PyObjectPtr) int64
+	PyList_GetItem func(PyObjectPtr, int64) PyObjectPtr
 	PyList_SetItem func(list PyObjectPtr, index int, item PyObjectPtr) int32
 	PyList_Append  func(list, item PyObjectPtr) int32
 	PyList_Insert  func(list PyObjectPtr, index int, item PyObjectPtr) int32
@@ -110,15 +116,15 @@ var (
 	PyDictProxy_New      func(mapping PyObjectPtr) PyObjectPtr
 	PyDict_Clear         func(PyObjectPtr)
 	PyDict_SetItem       func(dict, key, val PyObjectPtr) int32
-	PyDict_SetItemString func(dict PyObjectPtr, key string, val PyObjectPtr) int
+	PyDict_SetItemString func(dict PyObjectPtr, key string, val PyObjectPtr) int64
 	PyDict_GetItem       func(dict, key, val PyObjectPtr) PyObjectPtr
 	PyDict_GetItemString func(dict PyObjectPtr, key string) PyObjectPtr
 
 	PyBytes_FromString            func(string) PyObjectPtr
-	PyBytes_FromStringAndSize     func(*byte, int) PyObjectPtr
-	PyByteArray_FromStringAndSize func(*byte, int) PyObjectPtr
+	PyBytes_FromStringAndSize     func(*byte, int64) PyObjectPtr
+	PyByteArray_FromStringAndSize func(*byte, int64) PyObjectPtr
 	PyBytes_AsString              func(PyObjectPtr) *byte
-	PyBytes_Size                  func(PyObjectPtr) int
+	PyBytes_Size                  func(PyObjectPtr) int64
 
 	PyUnicode_FromString       func(string) PyObjectPtr
 	PyUnicode_AsWideCharString func(PyObjectPtr, *int) WCharPtr
@@ -196,10 +202,16 @@ func registerFuncs(lib PythonLibraryPtr) {
 	// ==== Data types
 	purego.RegisterLibFunc(&PyBool_FromLong, lib, "PyBool_FromLong")
 
+	purego.RegisterLibFunc(&PyLong_AsLong, lib, "PyLong_AsLong")
+	purego.RegisterLibFunc(&PyLong_AsLongAndOverflow, lib, "PyLong_AsLongAndOverflow")
+	purego.RegisterLibFunc(&PyLong_AsUnsignedLong, lib, "PyLong_AsUnsignedLong")
 	purego.RegisterLibFunc(&PyLong_FromLong, lib, "PyLong_FromLong")
 	purego.RegisterLibFunc(&PyLong_FromUnsignedLong, lib, "PyLong_FromUnsignedLong")
 	purego.RegisterLibFunc(&PyLong_FromLongLong, lib, "PyLong_FromLongLong")
 	purego.RegisterLibFunc(&PyLong_FromUnsignedLongLong, lib, "PyLong_FromUnsignedLongLong")
+
+	purego.RegisterLibFunc(&PyFloat_AsDouble, lib, "PyFloat_AsDouble")
+	purego.RegisterLibFunc(&PyFloat_FromDouble, lib, "PyFloat_FromDouble")
 
 	purego.RegisterLibFunc(&PyTuple_New, lib, "PyTuple_New")
 	purego.RegisterLibFunc(&PyTuple_SetItem, lib, "PyTuple_SetItem")
