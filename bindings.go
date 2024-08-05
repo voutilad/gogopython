@@ -61,7 +61,8 @@ var (
 
 	// Run a given Python script in the current interpreter, returning an exit
 	// code based on if there was a Python exception raised.
-	PyRun_SimpleString func(script string) int32
+	PyRun_SimpleString func(str string) int32
+
 	// Run a given Python script in the current interpreter using the given
 	// StartToken mode and globals/locals dicts.
 	//
@@ -70,7 +71,20 @@ var (
 	//
 	// Locals will contain any declared local values from the script and is a
 	// simple way to "return" Python data.
-	PyRun_String func(script string, token StartToken, globals, locals PyObjectPtr) PyObjectPtr
+	PyRun_String func(str string, start StartToken, globals, locals PyObjectPtr) PyObjectPtr
+
+	// Simplified form of Py_CompileStringFlags.
+	Py_CompileString func(str, filename string, start StartToken) PyCodeObjectPtr
+	// Simplified form of Py_CompileStringExFlags with optimize set to UseInterpreterLevel.
+	Py_CompileStringFlags func(str, filename string, start StartToken, flags *PyCompilerFlags) PyCodeObjectPtr
+
+	// Parse and compile the Python script in str and return the code object. The filename is used
+	// to populate the __file__ information for tracebacks and exception messages.
+	//
+	// Returns NullPyCodeObjectPtr on error.
+	Py_CompileStringExFlags func(str, filename string, start StartToken, flags *PyCompilerFlags, optimize OptimizeLevel) PyCodeObjectPtr
+
+	PyEval_EvalCode func(co PyCodeObjectPtr, globals, locals PyObjectPtr) PyObjectPtr
 
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
@@ -169,6 +183,12 @@ func registerFuncs(lib PythonLibraryPtr) {
 
 	purego.RegisterLibFunc(&PyRun_SimpleString, lib, "PyRun_SimpleString")
 	purego.RegisterLibFunc(&PyRun_String, lib, "PyRun_String")
+
+	purego.RegisterLibFunc(&Py_CompileString, lib, "Py_CompileString")
+	purego.RegisterLibFunc(&Py_CompileStringFlags, lib, "Py_CompileStringFlags")
+	purego.RegisterLibFunc(&Py_CompileStringExFlags, lib, "Py_CompileStringExFlags")
+
+	purego.RegisterLibFunc(&PyEval_EvalCode, lib, "PyEval_EvalCode")
 
 	purego.RegisterLibFunc(&PyModule_New, lib, "PyModule_New")
 	purego.RegisterLibFunc(&PyModule_AddObjectRef, lib, "PyModule_AddObjectRef")

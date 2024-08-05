@@ -122,9 +122,15 @@ def content():
 		program := `
 x = {"name": "Dave"}
 print(content())
-root = "hello world"
+root = f"hello world"
 `
-		output := py.PyRun_String(program, py.PyFileInput, globals, locals)
+		code := py.Py_CompileString(program, "program.py", py.PyFileInput)
+		if code == py.NullPyCodeObjectPtr {
+			py.PyErr_Print()
+			log.Fatalln("failed to compile python program")
+		}
+
+		output := py.PyEval_EvalCode(code, globals, locals)
 		if output == py.NullPyObjectPtr {
 			py.PyErr_Print()
 			log.Fatalln("exception in python script")

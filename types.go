@@ -6,6 +6,9 @@ type PyObjectPtr uintptr
 // Opaque pointer to an underlying PyTypeObject instance.
 type PyTypeObjectPtr uintptr
 
+// Opaque pointer to an underlying Python code object.
+type PyCodeObjectPtr uintptr
+
 // Opaque pointer to a Python wchar_t string.
 type WCharPtr *byte
 
@@ -18,6 +21,9 @@ const NullPyObjectPtr PyObjectPtr = 0
 
 // Represents a NULL pointer to a Python PyTypeObject
 const NullPyTypeObjectPtr PyTypeObjectPtr = 0
+
+// Represents a NULL pointer to a Python code object.
+const NullPyCodeObjectPtr PyCodeObjectPtr = 0
 
 // Confusingly named, but used to dictate to the Python interpretser & compiler
 // how to interpret the provided Python script in string form.
@@ -69,6 +75,20 @@ type PyStatus struct {
 	ErrMsg   WCharPtr
 	ExitCode int32
 }
+
+type PyCompilerFlags struct {
+	Flags          int32
+	FeatureVersion int32
+}
+
+type OptimizeLevel = int32
+
+const (
+	UseInterpreterLevel              OptimizeLevel = -1 // Uses whatever the interpreter was built with.
+	NoOptimization                   OptimizeLevel = 0  // No optimization, __debug__ is True.
+	RemoveDebugsAndAsserts           OptimizeLevel = 1  // __debug__ is False, no asserts.
+	RemoveDebugsAssertsAndDocstrings OptimizeLevel = 2  // __debug__ is False, no asserts, no docstrings.
+)
 
 type PyMemAllocator = int32
 
