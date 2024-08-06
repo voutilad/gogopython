@@ -120,6 +120,15 @@ var (
 	PyDict_GetItem       func(dict, key, val PyObjectPtr) PyObjectPtr
 	PyDict_GetItemString func(dict PyObjectPtr, key string) PyObjectPtr
 
+	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
+	PyFrozenSet_New func(iterable PyObjectPtr) PyObjectPtr
+	PySet_Size      func(PyObjectPtr) int64
+	PySet_Contains  func(set, key PyObjectPtr) int32
+	PySet_Add       func(set, key PyObjectPtr) int32
+	PySet_Discard   func(set, key PyObjectPtr) int32
+	PySet_Pop       func(set, key PyObjectPtr) PyObjectPtr
+	PySet_Clear     func(set PyObjectPtr) int32
+
 	PyBytes_FromString            func(string) PyObjectPtr
 	PyBytes_FromStringAndSize     func(*byte, int64) PyObjectPtr
 	PyByteArray_FromStringAndSize func(*byte, int64) PyObjectPtr
@@ -230,6 +239,15 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyDict_SetItemString, lib, "PyDict_SetItemString")
 	purego.RegisterLibFunc(&PyDict_GetItem, lib, "PyDict_GetItem")
 	purego.RegisterLibFunc(&PyDict_GetItemString, lib, "PyDict_GetItemString")
+
+	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")
+	purego.RegisterLibFunc(&PyFrozenSet_New, lib, "PyFrozenSet_New")
+	purego.RegisterLibFunc(&PySet_Size, lib, "PySet_Size")
+	purego.RegisterLibFunc(&PySet_Contains, lib, "PySet_Contains")
+	purego.RegisterLibFunc(&PySet_Add, lib, "PySet_Add")
+	purego.RegisterLibFunc(&PySet_Discard, lib, "PySet_Discard")
+	purego.RegisterLibFunc(&PySet_Clear, lib, "PySet_Clear")
+	purego.RegisterLibFunc(&PySet_Pop, lib, "PySet_Pop")
 
 	purego.RegisterLibFunc(&PyBytes_FromString, lib, "PyBytes_FromString")
 	purego.RegisterLibFunc(&PyBytes_FromStringAndSize, lib, "PyBytes_FromStringAndSize")

@@ -4,10 +4,10 @@ package gogopython
 type PyObjectPtr uintptr
 
 // Opaque pointer to an underlying PyTypeObject instance.
-type PyTypeObjectPtr uintptr
+type PyTypeObjectPtr PyObjectPtr
 
 // Opaque pointer to an underlying Python code object.
-type PyCodeObjectPtr uintptr
+type PyCodeObjectPtr PyObjectPtr
 
 // Opaque pointer to a Python wchar_t string.
 type WCharPtr *byte
@@ -51,6 +51,30 @@ const (
 	Set     Type = 2          // Python set.
 	Unknown Type = 0xffffffff // We have no idea what the type is...
 )
+
+func (t Type) String() string {
+	switch t {
+	case Long:
+		return "Long"
+	case List:
+		return "List"
+	case Tuple:
+		return "Tuple"
+	case Bytes:
+		return "Bytes"
+	case String:
+		return "String"
+	case Dict:
+		return "Dict"
+	case None:
+		return "None"
+	case Float:
+		return "Float"
+	case Set:
+		return "Set"
+	}
+	return "Unknown"
+}
 
 const (
 	typeMask              = (0x3f << 24) // flags mask to get type bits
@@ -156,7 +180,7 @@ type PyConfig_3_12 struct {
 	DevMode               int32
 	InstallSignalHandlers int32
 	UseHashSeed           int32
-	HashSeed              uint
+	HashSeed              uint64
 	FaultHandler          int32
 	TraceMalloc           int32
 	PerfProfiling         int32
