@@ -204,31 +204,57 @@ func FindPythonHomeAndPaths(exe string) (string, []string, error) {
 	return home, paths, nil
 }
 
-// Extract a Go string from a Python *wchar_t.
-//
-// On failure, returns either an empty string or panics!
-func PyBytesToString(b WCharPtr) string {
-	ptr := unsafe.Pointer(b)
+// WCharToString copies out a Python *wchar_t to a Go string.
+func WCharToString(text WCharPtr) (string, error) {
+	p := Py_EncodeLocale(text, nil)
+	if p == nil {
+		return "", errors.New("failed to encode text")
+	}
 
-	// TODO: replace with unsafe call to extract the string?
-	for len := 0; len < 1024; len++ {
+	// We don't own p.
+	defer PyMem_Free(p)
+
+	// We need to find the length of the string. It should be NULL-terminated,
+	// but cap the possible string length to something arbitrary: 10 MiB.
+	ptr := unsafe.Pointer(p)
+	for len := 0; len < (10 << 20); len++ {
 		if *(*uint8)(ptr) == 0 {
-			return unsafe.String(b, len)
+			// Found our NULL.
+			s := unsafe.String(p, len)
+			// We don't own the backing bytes, the intepreter does.
+			// As such, we need to make a copy.
+			return strings.Clone(s), nil
 		}
 		ptr = unsafe.Add(ptr, 1)
 	}
 
-	return ""
+	return "", errors.New("text too long")
 }
 
-// Identify the Python base type from a Python *PyObject.
+// UnicodeToString converts a Python Unicode object (i.e. a Python string)
+// to a Go string.
+//
+// Note: this currently involves a lot of data copying out from the Python
+// interpreter. It's far from optimized.
+func UnicodeToString(unicode PyObjectPtr) (string, error) {
+	wchar := PyUnicode_AsWideCharString(unicode, nil)
+	if wchar == nil {
+		return "", errors.New("failed to convert to wchar")
+	}
+
+	str, err := WCharToString(wchar)
+	PyMem_Free(wchar)
+	return str, err
+}
+
+// BaseType identifies the Python base type from a Python *PyObject.
 //
 // This uses a heuristic based on inspecting some internal object flags as
 // most of the Python C API for type inspection is written in macros.
 //
 // See https://docs.python.org/3/c-api/type.html#c.PyType_GetFlags if
 // curious about the flags.
-func Py_BaseType(obj PyObjectPtr) Type {
+func BaseType(obj PyObjectPtr) Type {
 	if obj == NullPyObjectPtr {
 		return Unknown
 	}

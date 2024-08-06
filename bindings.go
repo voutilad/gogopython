@@ -6,9 +6,10 @@ var (
 	// Converts a Go string into a Python *wchar_t, optionally storing some
 	// error information in the provided index (if non-nil).
 	Py_DecodeLocale func(s string, index *int) WCharPtr
-	// Converts a Python *wchar_t to a Go string, optionally storing some
+
+	// Converts a Python *wchar_t to a C char*, optionally storing some
 	// error information in the provided index (if non-nil).
-	Py_EncodeLocale func(p WCharPtr, index *int) string
+	Py_EncodeLocale func(p WCharPtr, index *int) *byte
 
 	// Pre-initialize the provided Python interpreter config using "isolated"
 	// defaults.
@@ -137,6 +138,8 @@ var (
 
 	PyUnicode_FromString       func(string) PyObjectPtr
 	PyUnicode_AsWideCharString func(PyObjectPtr, *int) WCharPtr
+	PyUnicode_DecodeFSDefault  func(string) PyObjectPtr
+	PyUnicode_EncodeFSDefault  func(PyObjectPtr) PyObjectPtr
 
 	Py_DecRef func(PyObjectPtr)
 	Py_IncRef func(PyObjectPtr)
@@ -257,6 +260,8 @@ func registerFuncs(lib PythonLibraryPtr) {
 
 	purego.RegisterLibFunc(&PyUnicode_FromString, lib, "PyUnicode_FromString")
 	purego.RegisterLibFunc(&PyUnicode_AsWideCharString, lib, "PyUnicode_AsWideCharString")
+	purego.RegisterLibFunc(&PyUnicode_DecodeFSDefault, lib, "PyUnicode_DecodeFSDefault")
+	purego.RegisterLibFunc(&PyUnicode_EncodeFSDefault, lib, "PyUnicode_EncodeFSDefault")
 
 	purego.RegisterLibFunc(&Py_DecRef, lib, "Py_DecRef")
 	purego.RegisterLibFunc(&Py_IncRef, lib, "Py_IncRef")

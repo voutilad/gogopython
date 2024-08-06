@@ -63,7 +63,8 @@ func main() {
 	preConfig.Allocator = py.PyMemAllocator_Malloc
 	status := py.Py_PreInitialize(&preConfig)
 	if status.Type != 0 {
-		log.Fatalln("Failed to preinitialize python:", py.PyBytesToString(status.ErrMsg))
+		msg, _ := py.WCharToString(status.ErrMsg)
+		log.Fatalln("Failed to preinitialize python:", msg)
 	}
 	log.Println("Pre-initialization complete.")
 
@@ -74,20 +75,23 @@ func main() {
 
 	status = py.PyConfig_SetBytesString(&config, &config.Home, home)
 	if status.Type != 0 {
-		log.Fatalln("Failed to set home:", py.PyBytesToString(status.ErrMsg))
+		msg, _ := py.WCharToString(status.ErrMsg)
+		log.Fatalln("Failed to set home:", msg)
 	}
 	log.Println("Set python home:", home)
 
 	status = py.PyConfig_SetBytesString(&config, &config.PythonPathEnv, path)
 	if status.Type != 0 {
-		log.Fatalln("failed to set path:", py.PyBytesToString(status.ErrMsg))
+		msg, _ := py.WCharToString(status.ErrMsg)
+		log.Fatalln("failed to set path:", msg)
 	}
 	log.Println("Set python path:", path)
 
 	// Initialize our main interpreter in our main Go routine.
 	status = py.Py_InitializeFromConfig(&config)
 	if status.Type != 0 {
-		log.Fatalln("Failed to initialize Python:", py.PyBytesToString(status.ErrMsg))
+		msg, _ := py.WCharToString(status.ErrMsg)
+		log.Fatalln("Failed to initialize Python:", msg)
 	}
 	mainTs := py.PyThreadState_Get()
 
@@ -102,7 +106,8 @@ func main() {
 	interpreterConfig.CheckMultiInterpExtensions = 1
 	status = py.Py_NewInterpreterFromConfig(&subThreadPtr, &interpreterConfig)
 	if status.Type != 0 {
-		log.Fatalln("Failed to create sub-interpreter:", py.PyBytesToString(status.ErrMsg))
+		msg, _ := py.WCharToString(status.ErrMsg)
+		log.Fatalln("Failed to create sub-interpreter:", msg)
 	}
 	print_current_interpreter()
 
@@ -164,7 +169,7 @@ func main() {
 			}
 
 			// Test out type detection.
-			if py.Py_BaseType(root) != py.Dict {
+			if py.BaseType(root) != py.Dict {
 				log.Fatalln("root should be a dict")
 			}
 			m := map[string]py.Type{
@@ -182,11 +187,19 @@ func main() {
 				if obj == py.NullPyObjectPtr {
 					log.Fatalf("Failed to find key %s in root dict\n", k)
 				}
-				if py.Py_BaseType(obj) != v {
+				if py.BaseType(obj) != v {
 					log.Fatalf("Value for key %s is not %s\n", k, v.String())
 				}
 				log.Printf("Detected root['%s'] as a %s\n", k, v.String())
 			}
+
+			// Test string copy-out.
+			pyString := py.PyDict_GetItemString(root, "string")
+			s, err := py.UnicodeToString(pyString)
+			if err != nil {
+				log.Fatalln("Failed to extract string:", err)
+			}
+			log.Println("Extracted string:", s)
 		}
 
 		// Drop ref counts.
