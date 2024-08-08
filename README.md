@@ -1,6 +1,10 @@
 # gogopython
 [![Build and Test](https://github.com/voutilad/gogopython/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/voutilad/gogopython/actions/workflows/build-and-test.yml)
 
+<div align="center">
+  <img src="./gogopython.jpg" width="45%" alt="A redpanda & a python sipping tea together as friends.">
+</div>
+
 Python, but in Go.
 
 ```bash
