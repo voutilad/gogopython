@@ -27,11 +27,11 @@ sudo apt install libpython3.12
 `gogopython` will try to find the library using `distutils` via the given
 Python binary. This may require installing `setuptools` via `pip`.
 
-On macOS, it will use `otool` to 
-
 ## Quick command line test
 
-Simply point the test program at your Python3 binary.
+Simply run the example program via `go run example/example.go` or,
+if `python3` is not in your path, provide it as a command line
+argument. For example, using a virtual environment might look like:
 
 ```
 # Create and activate virtual environment.
@@ -60,11 +60,9 @@ go run example/example.go ./venv/bin/python3
   return a struct on the stack and `purego` only supports that on
   macOS currently.
 
-- The Python api is super thread local storage oriented. Using it with
+- The Python API is super thread local storage oriented. Using it with
   Go is a small nightmare. Gratuitous use of `runtime.LockOSThread()`
-  is required.
+  is required. `gogopython` does not enforce this behavior.
 
-- The helper function for finding the Python dynamic library won't
-  work with Python installed via XCode as it's a funky dual-arch
-  binary with some dynamic library funkiness and `otool` can't
-  resolve the actual Python dylib location (if there even is one!)
+- Not all of the C API is wrapped and is being wrapped incrementally
+  as needed.
