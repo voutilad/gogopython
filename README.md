@@ -1,4 +1,5 @@
 # gogopython
+[![Build and Test](https://github.com/voutilad/gogopython/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/voutilad/gogopython/actions/workflows/build-and-test.yml)
 
 Python, but in Go.
 
