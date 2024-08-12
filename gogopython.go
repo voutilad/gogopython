@@ -293,3 +293,7 @@ func BaseType(obj PyObjectPtr) Type {
 	}
 	return Unknown
 }
+
+func RegisterFunction(fn func(self, tuple PyObjectPtr) PyObjectPtr) uintptr {
+	return purego.NewCallback(fn)
+}

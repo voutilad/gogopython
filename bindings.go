@@ -90,6 +90,8 @@ var (
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
 
+	PyCFunction_NewEx func(def *PyMethodDef, self, module PyObjectPtr) PyObjectPtr
+
 	PyBool_FromLong func(int64) PyObjectPtr
 
 	PyLong_AsLong               func(PyObjectPtr) int64
@@ -104,7 +106,9 @@ var (
 	PyFloat_FromDouble func(float64) PyObjectPtr
 
 	PyTuple_New     func(int64) PyObjectPtr
+	PyTuple_GetItem func(tuple PyObjectPtr, pos int64) PyObjectPtr
 	PyTuple_SetItem func(tuple PyObjectPtr, pos int64, item PyObjectPtr) int32
+	PyTuple_Size    func(tuple PyObjectPtr) int64
 
 	PyList_New     func(PyObjectPtr) int32
 	PyList_Size    func(PyObjectPtr) int64
@@ -211,6 +215,8 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyModule_New, lib, "PyModule_New")
 	purego.RegisterLibFunc(&PyModule_AddObjectRef, lib, "PyModule_AddObjectRef")
 
+	purego.RegisterLibFunc(&PyCFunction_NewEx, lib, "PyCFunction_NewEx")
+
 	// ==== Data types
 	purego.RegisterLibFunc(&PyBool_FromLong, lib, "PyBool_FromLong")
 
@@ -226,7 +232,9 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyFloat_FromDouble, lib, "PyFloat_FromDouble")
 
 	purego.RegisterLibFunc(&PyTuple_New, lib, "PyTuple_New")
+	purego.RegisterLibFunc(&PyTuple_GetItem, lib, "PyTuple_GetItem")
 	purego.RegisterLibFunc(&PyTuple_SetItem, lib, "PyTuple_SetItem")
+	purego.RegisterLibFunc(&PyTuple_Size, lib, "PyTuple_Size")
 
 	purego.RegisterLibFunc(&PyList_New, lib, "PyList_New")
 	purego.RegisterLibFunc(&PyList_Size, lib, "PyList_Size")

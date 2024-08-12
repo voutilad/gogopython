@@ -273,7 +273,7 @@ type PyInterpreterConfig struct {
 	// If this is 1, you must set Gil to OwnGil.
 	UseMainObMalloc int32
 
-	// Whether to allow using Python's os.fork funcion.
+	// Whether to allow using Python's os.fork function.
 	// Note: this doesn't block exec syscalls and subprocess module will still work.
 	AllowFork int32
 
@@ -309,3 +309,38 @@ const NullInterpreterState PyInterpreterStatePtr = 0
 
 // Opaque pointer to a Python dynamic library state in purego.
 type PythonLibraryPtr = uintptr
+
+// PyCFunction points to a C function implementation.
+type PyCFunction = uintptr
+
+// MethodFlags bits indicate how the method call is constructed.
+type MethodFlags int32
+
+const (
+	MethodVarArgs  MethodFlags = 0x01
+	MethodKeywords MethodFlags = 0x02
+	MethodNoArgs   MethodFlags = 0x04
+
+	// More exist...left out for brevity.
+
+	MethodFastCall MethodFlags = 0x80
+)
+
+const (
+	// PyObject *PyCFunction(PyObject *self, PyObject *args)
+	PyCFunctionDefault MethodFlags = MethodVarArgs
+
+	// PyObject *fn(PyObject *self, PyObject *args, PyObject *kwargs)
+	PyCFunctionWithKeywords MethodFlags = MethodVarArgs | MethodKeywords
+
+	// PyObject *fn(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
+	PyCFunctionFast MethodFlags = MethodFastCall
+)
+
+// PyMethodDef describes a C function made callable from Python.
+type PyMethodDef struct {
+	Name      *byte       // Name is a C string identifying the method.
+	Method    PyCFunction // Method points to the C function to be called.
+	Flags     MethodFlags // Flags is the bit-wise configuration of how the method is invoked.
+	Docstring *byte       // Docstring is a C string describing documentation for the method.
+}

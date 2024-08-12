@@ -1,27 +1,26 @@
 package main
 
 import (
+	_ "embed"
+	py "github.com/voutilad/gogopython"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync/atomic"
-
-	py "github.com/voutilad/gogopython"
+	"unsafe"
 )
 
-var script string = `
-import time
-print('python is sleeping')
-time.sleep(0.2)
-print('python is awake!')
-`
+//go:embed script.py
+var script string
 
 var helperCode string = `
 global content
 def content():
 	global __content__
 	return __content__
+
+go_func(0, 1, 2)
 `
 
 var program string = `
@@ -140,6 +139,40 @@ func main() {
 		// Create mappings (dicts) for global and local state.
 		globals := py.PyDict_New()
 		locals := py.PyDict_New()
+
+		// Create a callback into Go.
+		fn := func(self, args py.PyObjectPtr) py.PyObjectPtr {
+			log.Printf("Go func called: self=0x%x, args=0x%x\n", self, args)
+
+			argsType := py.BaseType(args)
+			if argsType == py.Tuple {
+				sz := py.PyTuple_Size(args)
+				log.Println("positional args of", sz, "items")
+				for i := int64(0); i < sz; i++ {
+					obj := py.PyTuple_GetItem(args, i)
+					t := py.BaseType(obj)
+					if t == py.Long {
+						val := py.PyLong_AsLong(obj)
+						log.Printf(" item[%d] = %d\n", i, val)
+					} else {
+						log.Fatalln("Expected a Long in the Tuple.")
+					}
+				}
+			} else {
+				log.Fatalln("Expected a Python Tuple, got", argsType.String())
+			}
+
+			return py.PyLong_FromLong(0) // need something non-nil
+		}
+		def := py.PyMethodDef{}
+		def.Name = unsafe.StringData("go_func")
+		def.Flags = py.MethodVarArgs
+		def.Method = py.RegisterFunction(fn)
+		pyFn := py.PyCFunction_NewEx(&def, py.NullPyObjectPtr, py.NullPyObjectPtr)
+		if pyFn == py.NullPyObjectPtr {
+			log.Fatalln("Failed to create python function")
+		}
+		py.PyDict_SetItemString(globals, "go_func", pyFn)
 
 		// Install some helper code in our global state.
 		py.PyRun_String(helperCode, py.PyFileInput, globals, locals)
