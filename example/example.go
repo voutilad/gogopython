@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
-	"unsafe"
 )
 
 //go:embed script.py
@@ -141,11 +140,14 @@ func main() {
 		locals := py.PyDict_New()
 
 		// Create a callback into Go.
-		fn := func(self, args py.PyObjectPtr) py.PyObjectPtr {
-			log.Printf("Go func called: self=0x%x, args=0x%x\n", self, args)
+		pyFn := py.NewFunction("go_func", py.NullPyObjectPtr,
+			func(self, args py.PyObjectPtr) py.PyObjectPtr {
+				log.Printf("Go func called: self=0x%x, args=0x%x\n", self, args)
 
-			argsType := py.BaseType(args)
-			if argsType == py.Tuple {
+				argsType := py.BaseType(args)
+				if argsType != py.Tuple {
+					log.Fatalln("Expected a Python Tuple, got", argsType.String())
+				}
 				sz := py.PyTuple_Size(args)
 				log.Println("positional args of", sz, "items")
 				for i := int64(0); i < sz; i++ {
@@ -158,20 +160,8 @@ func main() {
 						log.Fatalln("Expected a Long in the Tuple.")
 					}
 				}
-			} else {
-				log.Fatalln("Expected a Python Tuple, got", argsType.String())
-			}
-
-			return py.PyLong_FromLong(0) // need something non-nil
-		}
-		def := py.PyMethodDef{}
-		def.Name = unsafe.StringData("go_func")
-		def.Flags = py.MethodVarArgs
-		def.Method = py.RegisterFunction(fn)
-		pyFn := py.PyCFunction_NewEx(&def, py.NullPyObjectPtr, py.NullPyObjectPtr)
-		if pyFn == py.NullPyObjectPtr {
-			log.Fatalln("Failed to create python function")
-		}
+				return py.PyLong_FromLong(0) // need something non-null
+			})
 		py.PyDict_SetItemString(globals, "go_func", pyFn)
 
 		// Install some helper code in our global state.

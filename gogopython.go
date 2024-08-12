@@ -294,6 +294,13 @@ func BaseType(obj PyObjectPtr) Type {
 	return Unknown
 }
 
-func RegisterFunction(fn func(self, tuple PyObjectPtr) PyObjectPtr) uintptr {
-	return purego.NewCallback(fn)
+// NewFunction creates a new Python function object, with the given name, that
+// calls the provided Go func.
+func NewFunction(name string, self PyObjectPtr, fn func(self, tuple PyObjectPtr) PyObjectPtr) PyObjectPtr {
+	def := PyMethodDef{
+		Name:   unsafe.StringData(name),
+		Flags:  MethodVarArgs,
+		Method: purego.NewCallback(fn),
+	}
+	return PyCFunction_NewEx(&def, self, NullPyObjectPtr)
 }
