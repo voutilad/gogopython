@@ -55,6 +55,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	// Pre-initialize Python.
 	preConfig := py.PyPreConfig{}
 	py.PyPreConfig_InitIsolatedConfig(&preConfig)
@@ -93,11 +96,10 @@ func main() {
 	}
 	mainTs := py.PyThreadState_Get()
 
-	// Add a GIL reference, print, and drop our thread state.
-	print_current_interpreter()
+	// Unload our main interpreter state from this thread.
 	py.PyThreadState_Swap(py.NullThreadState)
 
-	// Create a Subinterpreter in our main go routine so it's tied to the current thread.
+	// Create a sub-interpreter in our main go routine so it's tied to the current thread.
 	var subThreadPtr py.PyThreadStatePtr
 	interpreterConfig := py.PyInterpreterConfig{}
 	interpreterConfig.Gil = py.OwnGil
@@ -107,12 +109,11 @@ func main() {
 		msg, _ := py.WCharToString(status.ErrMsg)
 		log.Fatalln("Failed to create sub-interpreter:", msg)
 	}
-	print_current_interpreter()
 
 	// Get a pointer to our interpreter state, which should not be thread local afaik.
-	subint := py.PyInterpreterState_Get()
+	subIntState := py.PyInterpreterState_Get()
 
-	// Remove our threadstate and release the GIL
+	// Remove our thread state and release the GIL
 	ts := py.PyEval_SaveThread()
 
 	// Launch a go routine and busy wait for it to finish. Use an atomic and
@@ -121,13 +122,9 @@ func main() {
 	signal.Store(true)
 
 	go func() {
-		log.Println("Started go routine.")
-
 		runtime.LockOSThread()
-		ts := py.PyThreadState_New(subint)
-		py.PyEval_RestoreThread(ts)
-
-		print_current_interpreter()
+		newTs := py.PyThreadState_New(subIntState)
+		py.PyEval_RestoreThread(newTs)
 
 		// Demonstrate running a simple script without global/local state.
 		if py.PyRun_SimpleString(script) != 0 {
@@ -165,7 +162,12 @@ func main() {
 		py.PyDict_SetItemString(globals, "go_func", pyFn)
 
 		// Install some helper code in our global state.
-		py.PyRun_String(helperCode, py.PyFileInput, globals, locals)
+		result := py.PyRun_String(helperCode, py.PyFileInput, globals, locals)
+		if result == py.NullPyObjectPtr {
+			py.PyErr_Print()
+			log.Fatalln("PyRun_String failed.")
+		}
+		py.Py_DecRef(result)
 
 		// Populate some global state.
 		bytes := py.PyBytes_FromString("hello world")
@@ -185,6 +187,8 @@ func main() {
 			py.PyErr_Print()
 			log.Fatalln("exception in python script")
 		} else {
+			py.Py_DecRef(output)
+
 			// Extract our "root" local defined in the code.
 			root := py.PyDict_GetItemString(locals, "root")
 			if root == py.NullPyObjectPtr {
@@ -230,7 +234,7 @@ func main() {
 		py.Py_DecRef(locals)
 
 		// Clean up our thread.
-		py.PyThreadState_Clear(ts)
+		py.PyThreadState_Clear(newTs)
 		py.PyThreadState_DeleteCurrent()
 
 		runtime.UnlockOSThread()
@@ -242,33 +246,22 @@ func main() {
 		// busy busy busy
 		working = signal.Load()
 	}
-	log.Println("Go routine looks fininshed.")
+	log.Println("Go routine looks finished.")
 
 	py.PyEval_RestoreThread(ts)
-	log.Println("Reloaded subthread state on main go routine.")
-	print_current_interpreter()
+	log.Println("Reloaded original sub-interpreter thread state on main go routine.")
 
 	py.PyThreadState_Clear(ts)
-	log.Println("Cleared subthread state on main go routine.")
+	log.Println("Cleared original sub-interpreter state on main go routine.")
 
-	py.PyInterpreterState_Clear(subint)
+	py.PyInterpreterState_Clear(subIntState)
 	log.Println("Reset interpreter on main go routine.")
 
-	py.PyInterpreterState_Delete(subint)
+	py.PyInterpreterState_Delete(subIntState)
 	log.Println("Deleted sub interpreter state on main go routine.")
 
 	py.PyEval_RestoreThread(mainTs)
 	log.Println("Restored main thread on main go routine.")
-	print_current_interpreter()
 
 	py.Py_FinalizeEx()
-}
-
-func print_current_interpreter() {
-	/// See https://github.com/python/cpython/blob/2b163aa9e796b312bb0549d49145d26e4904768e/Programs/_testembed.c#L100-L115
-	ts := py.PyThreadState_Get()
-	me := py.PyThreadState_GetInterpreter(ts)
-	id := py.PyInterpreterState_GetID(me)
-	log.Printf("Active interpreter: 0x%x, thread state 0x%x, id %d\n", me, ts, id)
-	// py.PyRun_SimpleString("import sys; print('id(modules) =', id(sys.modules)); sys.stdout.flush()")
 }
