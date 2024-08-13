@@ -134,7 +134,7 @@ var (
 	PyDict_Clear         func(PyObjectPtr)
 	PyDict_SetItem       func(dict, key, val PyObjectPtr) int32
 	PyDict_SetItemString func(dict PyObjectPtr, key string, val PyObjectPtr) int64
-	PyDict_GetItem       func(dict, key, val PyObjectPtr) PyObjectPtr
+	PyDict_GetItem       func(dict, key PyObjectPtr) PyObjectPtr
 	PyDict_GetItemString func(dict PyObjectPtr, key string) PyObjectPtr
 	PyDict_Keys          func(dict PyObjectPtr) PyObjectPtr
 	PyDict_Values        func(dict PyObjectPtr) PyObjectPtr
