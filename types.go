@@ -1,32 +1,31 @@
 package gogopython
 
-// Opaque pointer to an underlying PyObject instance.
+// PyObjectPtr is a pointer to an underlying PyObject instance.
 type PyObjectPtr uintptr
 
-// Opaque pointer to an underlying PyTypeObject instance.
+// PyTypeObjectPtr is a pointer to an underlying PyTypeObject instance.
 type PyTypeObjectPtr PyObjectPtr
 
-// Opaque pointer to an underlying Python code object.
+// PyCodeObjectPtr is a pointer to an underlying Python code object.
 type PyCodeObjectPtr PyObjectPtr
 
-// Opaque pointer to a Python wchar_t string.
+// WCharPtr is a pointer to a Python wchar_t string.
 type WCharPtr *byte
 
-// Opaque state of the GIL, used sort of as a cookie in the ensure/release
-// function calls.
+// PyGILState is used sort as a cookie in the ensure/release function calls.
 type PyGILState int32
 
-// Represents a NULL pointer to a Python PyObject
+// NullPyObjectPtr represents a NULL pointer to a Python PyObject
 const NullPyObjectPtr PyObjectPtr = 0
 
-// Represents a NULL pointer to a Python PyTypeObject
+// NullPyTypeObjectPtr represents a NULL pointer to a Python PyTypeObject
 const NullPyTypeObjectPtr PyTypeObjectPtr = 0
 
-// Represents a NULL pointer to a Python code object.
+// NullPyCodeObjectPtr represents a NULL pointer to a Python code object.
 const NullPyCodeObjectPtr PyCodeObjectPtr = 0
 
-// Confusingly named, but used to dictate to the Python interpretser & compiler
-// how to interpret the provided Python script in string form.
+// StartToken (confusingly named) is used to dictate to the Python
+// interpreter and compiler how to evaluate a Python script.
 type StartToken = int32
 
 const (
@@ -36,7 +35,7 @@ const (
 	PyFuncTypeInput StartToken = 345 // No idea what this is!
 )
 
-// PyObject types based on inspecting the tpflags of a PyTypeObject
+// Type describes the native Python type of PyObject.
 type Type uint64
 
 const (
@@ -52,6 +51,7 @@ const (
 	Unknown Type = 0xffffffff // We have no idea what the type is...
 )
 
+// String converts a Type to a human-readable string representation.
 func (t Type) String() string {
 	switch t {
 	case Long:
@@ -100,11 +100,11 @@ const (
 	setMask = (noneMask | matchSelf | supportsGc)
 )
 
-// Return status of some specific Python C API calls.
+// PyStatus is returned by some Python C API calls.
 //
 // This is the biggest headache of this whole thing. A few functions return
 // this struct directly instead of either via a pointer or by reference in
-// the function args. It creates a nightware to deal with the various ABI
+// the function args. It creates a nightmare to deal with the various ABI
 // logic for how structs get returned that don't fit into a cpu register
 // width.
 //
@@ -162,7 +162,7 @@ type pyWideStringList struct {
 	Items  uintptr
 }
 
-// Python Interpreter Configuration
+// PyConfig_3_12 configures a Python 3.12 interpreter.
 //
 // This is a version-dependent structure, unfortunately. We need this because
 // it's the stable way of configuring the Home and Path (PythonPathEnv).
@@ -264,8 +264,9 @@ const (
 	OwnGil     GilType = 2 // On Python 3.12 and newer, creates a unique GIL.
 )
 
-// Configuration for a sub-interpreter. All int32 values are really booleans,
-// so 0 = false, 1 = true. (Non-zero may also = true. Not sure!)
+// PyInterpreterConfig defines settings for a sub-interpreter. All int32
+// values are really booleans, so 0 = false, 1 = true. (Non-zero may
+// also be equivalent to true, but I'm not sure!)
 type PyInterpreterConfig struct {
 	// Whether to share the main interpreters object allocator state.
 	//
@@ -295,19 +296,19 @@ type PyInterpreterConfig struct {
 	Gil GilType
 }
 
-// Opaque pointer to a Python ThreadState.
+// PyThreadStatePtr is a pointer to a Python ThreadState.
 type PyThreadStatePtr uintptr
 
-// Opaque pointer to a Python InterpreterState.
+// PyInterpreterStatePtr is a pointer to a Python InterpreterState.
 type PyInterpreterStatePtr uintptr
 
-// NULL version of a Python ThreadState.
+// NullThreadState is a NULL version of a Python ThreadState.
 const NullThreadState PyThreadStatePtr = 0
 
-// NULL version of a Python InterpreterState.
+// NullInterpreterState is a NULL version of a Python InterpreterState.
 const NullInterpreterState PyInterpreterStatePtr = 0
 
-// Opaque pointer to a Python dynamic library state in purego.
+// PythonLibraryPtr is a pointer to a Python dynamic library state.
 type PythonLibraryPtr = uintptr
 
 // PyCFunction points to a C function implementation.
@@ -327,13 +328,16 @@ const (
 )
 
 const (
-	// PyObject *PyCFunction(PyObject *self, PyObject *args)
+	// PyCFunctionDefault has the C function signature:
+	//   PyObject *PyCFunction(PyObject *self, PyObject *args)
 	PyCFunctionDefault MethodFlags = MethodVarArgs
 
-	// PyObject *fn(PyObject *self, PyObject *args, PyObject *kwargs)
+	// PyCFunctionWithKeywords has the C function signature:
+	//   PyObject *fn(PyObject *self, PyObject *args, PyObject *kwargs)
 	PyCFunctionWithKeywords MethodFlags = MethodVarArgs | MethodKeywords
 
-	// PyObject *fn(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
+	// PyCFunctionFast has the C function signature:
+	//   PyObject *fn(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
 	PyCFunctionFast MethodFlags = MethodFastCall
 )
 

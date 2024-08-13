@@ -1,4 +1,4 @@
-// gogopython wraps a Python dynamic library with Go native functions, making
+// Package gogopython wraps a Python dynamic library with Go native functions, making
 // embedding of Python in a native Go app relatively easy. (For some definition
 // of easy)
 //
@@ -25,11 +25,10 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-// Given the path to a Python binary (exe), attempt to load and wrap the
-// appropriate dynamic library for embedding Python. Load_library uses
-// Cmd from [os/exec], so it follows Cmd's resolution semantics.
+// Load_library attempts to load and wrap the appropriate dynamic library for
+// embedding Python, given a particular Python binary.
 //
-// Currently assumes the provided binary is for Python 3.12.
+// Currently, assumes the provided binary is for Python 3.12.
 func Load_library(exe string) error {
 	var dll string
 	var err error
@@ -165,11 +164,11 @@ func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
 	return nil, errors.New("failed to find library base")
 }
 
-// Python snippet for discoverying home and path.
+// Python snippet for discovering home and path.
 const helper string = "import sys; print(sys.prefix); [print(p) for p in sys.path if len(p) > 0]"
 
-// Use the provided Python executable to discovery the Python Home and
-// path settings.
+// FindPythonHomeAndPaths uses the provided Python executable to discovery the
+// Python Home and path settings.
 func FindPythonHomeAndPaths(exe string) (string, []string, error) {
 	home := ""
 
@@ -217,10 +216,10 @@ func WCharToString(text WCharPtr) (string, error) {
 	// We need to find the length of the string. It should be NULL-terminated,
 	// but cap the possible string length to something arbitrary: 10 MiB.
 	ptr := unsafe.Pointer(p)
-	for len := 0; len < (10 << 20); len++ {
+	for _len := 0; _len < (10 << 20); _len++ {
 		if *(*uint8)(ptr) == 0 {
 			// Found our NULL.
-			s := unsafe.String(p, len)
+			s := unsafe.String(p, _len)
 			// We don't own the backing bytes, the intepreter does.
 			// As such, we need to make a copy.
 			return strings.Clone(s), nil

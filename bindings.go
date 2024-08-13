@@ -3,43 +3,50 @@ package gogopython
 import "github.com/ebitengine/purego"
 
 var (
-	// Converts a Go string into a Python *wchar_t, optionally storing some
-	// error information in the provided index (if non-nil).
+	// Py_DecodeLocale converts a Go string into a Python *wchar_t, optionally
+	// storing some error information in the provided index (if non-nil).
 	Py_DecodeLocale func(s string, index *int) WCharPtr
 
-	// Converts a Python *wchar_t to a C char*, optionally storing some
-	// error information in the provided index (if non-nil).
+	// Py_EncodeLocale converts a Python *wchar_t to a C char*, optionally
+	// storing some error information in the provided index (if non-nil).
 	Py_EncodeLocale func(p WCharPtr, index *int) *byte
 
-	// Pre-initialize the provided Python interpreter config using "isolated"
-	// defaults.
+	// PyPreConfig_InitIsolatedConfig pre-initializes the provided Python
+	// interpreter config using "isolated" defaults.
 	PyPreConfig_InitIsolatedConfig func(*PyPreConfig)
 
-	// Initialize the provided Python interpreter config using defaults.
+	// PyConfig_InitPythonConfig initializes the provided Python interpreter
+	// config using defaults.
 	PyConfig_InitPythonConfig func(*PyConfig_3_12)
-	// Initialize the provided Python interpreter config using "isolated"
-	// defaults.
-	PyConfig_InitIsolatedPythonConfig func(*PyConfig_3_12)
-	PyConfig_Clear                    func(*PyConfig_3_12)
 
-	// Tear down the global Python interpreter state.
+	// PyConfig_InitIsolatedPythonConfig initializes the provided Python
+	// interpreter config using "isolated" defaults.
+	PyConfig_InitIsolatedPythonConfig func(*PyConfig_3_12)
+
+	// PyConfig_Clear clears set values in a given PyConfig_3_12.
+	PyConfig_Clear func(*PyConfig_3_12)
+
+	// Py_FinalizeEx tears down the global Python interpreter state.
 	//
-	// This can deadlock depending on the GIL state. It can also panic. Be
-	// careful!
+	// This can deadlock depending on the GIL state. It can also panic.
 	Py_FinalizeEx func() int32
 
-	// Tear down a sub-interpreter using the provided thread state.
+	// Py_EndInterpreter tears down a sub-interpreter using the provided
+	// thread state.
 	//
-	// Can panic or deadlock. Be careful!.
+	// This can panic or deadlock. Be careful!
 	Py_EndInterpreter func(PyThreadStatePtr)
 
-	// Reports whether we have the GIL. 1 if true, 0 if false.
+	// PyGILState_Check reports whether the caller has the GIL.
+	// It returns 1 if true, 0 if false.
 	PyGILState_Check func() int32
 
-	// Take a reference to the GIL. Caution: this is recursive.
+	// PyGILState_Ensure takes a reference to the GIL.
+	// Caution: this is recursive.
 	PyGILState_Ensure func() PyGILState
 
-	// Release a reference to the GIL. Caution: this is recursive.
+	// PyGILState_Release releases a reference to the GIL.
+	// Caution: this is recursive.
 	PyGILState_Release func(PyGILState)
 
 	PyEval_AcquireThread func(PyThreadStatePtr)
@@ -60,12 +67,13 @@ var (
 	PyInterpreterState_Clear  func(PyInterpreterStatePtr)
 	PyInterpreterState_Delete func(PyInterpreterStatePtr)
 
-	// Run a given Python script in the current interpreter, returning an exit
-	// code based on if there was a Python exception raised.
-	PyRun_SimpleString func(str string) int32
+	// PyRun_SimpleString evaluates the given Python script in the current
+	// interpreter, returning an exit code based on if there was a Python
+	// exception raised.
+	PyRun_SimpleString func(script string) int32
 
-	// Run a given Python script in the current interpreter using the given
-	// StartToken mode and globals/locals dicts.
+	// PyRun_String evaluates a given Python script in the current interpreter
+	// using the given StartToken mode and globals/locals dicts.
 	//
 	// Globals will be accessible like any global and the script can mutate the
 	// globals mapping using the "globals" keyword in the script.
@@ -74,16 +82,20 @@ var (
 	// simple way to "return" Python data.
 	PyRun_String func(str string, start StartToken, globals, locals PyObjectPtr) PyObjectPtr
 
-	// Simplified form of Py_CompileStringFlags.
+	// Py_CompileString is a simplified form of Py_CompileStringFlags using
+	// default compiler flags.
 	Py_CompileString func(str, filename string, start StartToken) PyCodeObjectPtr
-	// Simplified form of Py_CompileStringExFlags with optimize set to UseInterpreterLevel.
+	// Py_CompileStringFlags is a simplified form of Py_CompileStringExFlags
+	// with optimizations set to UseInterpreterLevel.
 	Py_CompileStringFlags func(str, filename string, start StartToken, flags *PyCompilerFlags) PyCodeObjectPtr
 
-	// Parse and compile the Python script in str and return the code object. The filename is used
-	// to populate the __file__ information for tracebacks and exception messages.
+	// Py_CompileStringExFlags compiles the Python script in str and returns
+	// the compiled Python code object. The filename is used to populate the
+	// __file__ information for tracebacks and exception messages.
 	//
 	// Returns NullPyCodeObjectPtr on error.
-	Py_CompileStringExFlags func(str, filename string, start StartToken, flags *PyCompilerFlags, optimize OptimizeLevel) PyCodeObjectPtr
+	Py_CompileStringExFlags func(str, filename string, start StartToken,
+		flags *PyCompilerFlags, optimize OptimizeLevel) PyCodeObjectPtr
 
 	PyEval_EvalCode func(co PyCodeObjectPtr, globals, locals PyObjectPtr) PyObjectPtr
 
