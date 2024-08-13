@@ -136,6 +136,9 @@ var (
 	PyDict_SetItemString func(dict PyObjectPtr, key string, val PyObjectPtr) int64
 	PyDict_GetItem       func(dict, key, val PyObjectPtr) PyObjectPtr
 	PyDict_GetItemString func(dict PyObjectPtr, key string) PyObjectPtr
+	PyDict_Keys          func(dict PyObjectPtr) PyObjectPtr
+	PyDict_Values        func(dict PyObjectPtr) PyObjectPtr
+	PyDict_Size          func(dict PyObjectPtr) int64
 
 	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
 	PyFrozenSet_New func(iterable PyObjectPtr) PyObjectPtr
@@ -262,6 +265,9 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyDict_SetItemString, lib, "PyDict_SetItemString")
 	purego.RegisterLibFunc(&PyDict_GetItem, lib, "PyDict_GetItem")
 	purego.RegisterLibFunc(&PyDict_GetItemString, lib, "PyDict_GetItemString")
+	purego.RegisterLibFunc(&PyDict_Keys, lib, "PyDict_Keys")
+	purego.RegisterLibFunc(&PyDict_Values, lib, "PyDict_Values")
+	purego.RegisterLibFunc(&PyDict_Size, lib, "PyDict_Size")
 
 	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")
 	purego.RegisterLibFunc(&PyFrozenSet_New, lib, "PyFrozenSet_New")
