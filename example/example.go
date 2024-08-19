@@ -13,7 +13,7 @@ import (
 //go:embed script.py
 var script string
 
-var helperCode string = `
+var helperCode = `
 global content
 def content():
 	global __content__
@@ -22,7 +22,7 @@ def content():
 go_func(0, 1, 2)
 `
 
-var program string = `
+var program = `
 root = {
   "long": 123,
   "list": [],
@@ -33,6 +33,13 @@ root = {
   "set": set(),
   "none": None,
 }
+
+def findme():
+	return "hello"
+
+def _genny():
+	yield "hello"
+genny = _genny()
 `
 
 func main() {
@@ -227,6 +234,64 @@ func main() {
 				log.Fatalln("Failed to extract string:", err)
 			}
 			log.Println("Extracted string:", s)
+
+			// See if we can extract and execute our function.
+			fn := py.PyDict_GetItemString(locals, "findme")
+			if fn == py.NullPyObjectPtr {
+				log.Fatalln("no function object found")
+			}
+			if py.BaseType(fn) != py.Function {
+				log.Fatalln("object 'findme' is not a function")
+			}
+
+			// Try calling our function that was defined in Python.
+			fnCode := py.PyFunction_GetCode(fn)
+			if fnCode == py.NullPyCodeObjectPtr {
+				log.Fatalln("no code object found for function")
+			}
+			empty := py.PyTuple_New(0)
+			result = py.PyObject_CallObject(fn, empty)
+			if result == py.NullPyObjectPtr {
+				log.Fatalln("no result from calling function")
+			}
+			if py.BaseType(result) != py.String {
+				log.Fatalln("expected a string result from function call")
+			}
+			s, err = py.UnicodeToString(result)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if s != "hello" {
+				log.Fatalln("expected result to say 'hello'")
+			}
+			log.Printf("function result says: '%s'\n", s)
+			py.Py_DecRef(result)
+			py.Py_DecRef(empty)
+
+			// Try getting a value from our generator.
+			gen := py.PyDict_GetItemString(locals, "genny")
+			if gen == py.NullPyObjectPtr {
+				log.Fatalln("no generator object found")
+			}
+			if py.BaseType(gen) != py.Generator {
+				log.Fatalln("object 'genny' is not a generator")
+			}
+			result = py.PyIter_Next(gen)
+			if result == py.NullPyObjectPtr {
+				log.Fatalln("no result from generator!")
+			}
+			if py.BaseType(result) != py.String {
+				log.Fatalln("expected a string result from generator call")
+			}
+			s, err = py.UnicodeToString(result)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if s != "hello" {
+				log.Fatalln("expected result to say 'hello'")
+			}
+			log.Printf("generator result says: '%s'\n", s)
+			py.Py_DecRef(result)
 		}
 
 		// Drop ref counts.

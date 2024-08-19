@@ -39,15 +39,18 @@ const (
 type Type uint64
 
 const (
-	Long    Type = (1 << 24)  // Python long.
-	List    Type = (1 << 25)  // Python list.
-	Tuple   Type = (1 << 26)  // Python tuple.
-	Bytes   Type = (1 << 27)  // Python bytes (not bytearray).
-	String  Type = (1 << 28)  // Python unicode string.
-	Dict    Type = (1 << 29)  // Python dictionary.
-	None    Type = 0          // The Python "None" type.
-	Float   Type = 1          // Python float.
-	Set     Type = 2          // Python set.
+	Long      Type = (1 << 24) // Python long.
+	List      Type = (1 << 25) // Python list.
+	Tuple     Type = (1 << 26) // Python tuple.
+	Bytes     Type = (1 << 27) // Python bytes (not bytearray).
+	String    Type = (1 << 28) // Python unicode string.
+	Dict      Type = (1 << 29) // Python dictionary.
+	None      Type = 0         // The Python "None" type.
+	Float     Type = 1         // Python float.
+	Set       Type = 2         // Python set.
+	Function  Type = 3         // Python function.
+	Generator Type = 4         // Python generator.
+
 	Unknown Type = 0xffffffff // We have no idea what the type is...
 )
 
@@ -79,11 +82,13 @@ func (t Type) String() string {
 const (
 	typeMask              = (0x3f << 24) // flags mask to get type bits
 	builtIn               = (1 << 1)     // flags for built-in types
+	disallowInstantiation = (1 << 7)     // disallow creating new instances
 	immutableFlag         = (1 << 8)     // bit that describes an immutable object
 	allowsSubclassingFlag = (1 << 10)    // bit that describes if a type can be subclassed
 	hasVectorCall         = (1 << 11)    // set if the type implements the vectorcall protocol (PEP 590)
 	ready                 = (1 << 12)    // type is fully initialized
 	supportsGc            = (1 << 14)    // Type supports garbage collection
+	methodDescriptor      = (1 << 17)    // Object behaves like an unbound method
 	validVersion          = (1 << 19)    // unused legacy flag
 	matchSelf             = (1 << 22)    // "undocumented" flag for some built-ins regarding pattern matching
 	itemsAtEnd            = (1 << 23)    // set if the type stores items at the end of instance memory
@@ -98,6 +103,12 @@ const (
 	// Our heuristic for detecting a Python set. It looks like a float, but
 	// supports garbage collection as it's a container.
 	setMask = (noneMask | matchSelf | supportsGc)
+
+	// Our heuristic for detecting a Python function.
+	fnMask = (noneMask | hasVectorCall | supportsGc | methodDescriptor)
+
+	// Our heuristic for detecting a Python generator.
+	genMask = (noneMask | disallowInstantiation | supportsGc)
 )
 
 // PyStatus is returned by some Python C API calls.
@@ -348,3 +359,11 @@ type PyMethodDef struct {
 	Flags     MethodFlags // Flags is the bit-wise configuration of how the method is invoked.
 	Docstring *byte       // Docstring is a C string describing documentation for the method.
 }
+
+type PySendResult int32
+
+const (
+	PyGen_Return PySendResult = 0
+	PyGen_Error  PySendResult = -1
+	PyGen_Next   PySendResult = 1
+)

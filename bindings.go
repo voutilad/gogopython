@@ -140,6 +140,14 @@ var (
 	PyDict_Values        func(dict PyObjectPtr) PyObjectPtr
 	PyDict_Size          func(dict PyObjectPtr) int64
 
+	PyIter_Check func(iter PyObjectPtr) int32
+	PyIter_Next  func(iter PyObjectPtr) PyObjectPtr
+	PyIter_Send  func(iter, arg PyObjectPtr, result *PyObjectPtr) PySendResult
+
+	PyFunction_GetCode func(fn PyObjectPtr) PyCodeObjectPtr
+
+	PyObject_CallObject func(callable, args PyObjectPtr) PyObjectPtr
+
 	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
 	PyFrozenSet_New func(iterable PyObjectPtr) PyObjectPtr
 	PySet_Size      func(PyObjectPtr) int64
@@ -268,6 +276,14 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyDict_Keys, lib, "PyDict_Keys")
 	purego.RegisterLibFunc(&PyDict_Values, lib, "PyDict_Values")
 	purego.RegisterLibFunc(&PyDict_Size, lib, "PyDict_Size")
+
+	purego.RegisterLibFunc(&PyIter_Check, lib, "PyIter_Check")
+	purego.RegisterLibFunc(&PyIter_Next, lib, "PyIter_Next")
+	purego.RegisterLibFunc(&PyIter_Send, lib, "PyIter_Send")
+
+	purego.RegisterLibFunc(&PyFunction_GetCode, lib, "PyFunction_GetCode")
+
+	purego.RegisterLibFunc(&PyObject_CallObject, lib, "PyObject_CallObject")
 
 	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")
 	purego.RegisterLibFunc(&PyFrozenSet_New, lib, "PyFrozenSet_New")

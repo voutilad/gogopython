@@ -279,7 +279,12 @@ func BaseType(obj PyObjectPtr) Type {
 			return Dict
 		}
 	} else {
-		// Set has more bits set, so check that first.
+		if (flags & fnMask) == fnMask {
+			return Function
+		}
+		if (flags & genMask) == genMask {
+			return Generator
+		}
 		if (flags & setMask) == setMask {
 			return Set
 		}
