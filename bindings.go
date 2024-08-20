@@ -146,6 +146,9 @@ var (
 
 	PyFunction_GetCode func(fn PyObjectPtr) PyCodeObjectPtr
 
+	PyObject_Call       func(callable, args, kwargs PyObjectPtr) PyObjectPtr
+	PyObject_CallNoArgs func(callable PyObjectPtr) PyObjectPtr
+	PyObject_CallOneArg func(callable, args PyObjectPtr) PyObjectPtr
 	PyObject_CallObject func(callable, args PyObjectPtr) PyObjectPtr
 
 	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
@@ -283,6 +286,9 @@ func registerFuncs(lib PythonLibraryPtr) {
 
 	purego.RegisterLibFunc(&PyFunction_GetCode, lib, "PyFunction_GetCode")
 
+	purego.RegisterLibFunc(&PyObject_Call, lib, "PyObject_Call")
+	purego.RegisterLibFunc(&PyObject_CallOneArg, lib, "PyObject_CallOneArg")
+	purego.RegisterLibFunc(&PyObject_CallNoArgs, lib, "PyObject_CallNoArgs")
 	purego.RegisterLibFunc(&PyObject_CallObject, lib, "PyObject_CallObject")
 
 	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")

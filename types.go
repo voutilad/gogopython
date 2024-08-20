@@ -107,7 +107,7 @@ const (
 	// Our heuristic for detecting a Python function.
 	fnMask = (noneMask | hasVectorCall | supportsGc | methodDescriptor)
 
-	// Our heuristic for detecting a Python generator.
+	// Our heuristic for detecting a Python generator or iterator.
 	genMask = (noneMask | disallowInstantiation | supportsGc)
 )
 
