@@ -23,7 +23,7 @@ print(f"helper module executed, __name__={__name__}")
 `
 
 var program = `
-import junk
+import example.junk as junk
 root = {
   "long": 123,
   "list": [],
@@ -307,7 +307,7 @@ func main() {
 			if dumps == py.NullPyObjectPtr {
 				log.Fatalln("expected dumps from pickle module attrs")
 			}
-			junkMod := py.PyImport_ImportModule("junk")
+			junkMod := py.PyImport_ImportModule("example.junk")
 			if junkMod == py.NullPyObjectPtr {
 				log.Fatalln("no pickle module found")
 			}
