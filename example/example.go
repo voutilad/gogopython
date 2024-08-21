@@ -13,26 +13,29 @@ import (
 //go:embed script.py
 var script string
 
-var helperCode = `
-global content
+var helperModuleSrc = `
 def content():
-	global __content__
-	return __content__
+	return b'hey dude'
 
-go_func(0, 1, 2)
+# trigger a callback
+# go_func(0, 1, 2)
+print(f"helper module executed, __name__={__name__}")
 `
 
 var program = `
+import junk
 root = {
   "long": 123,
   "list": [],
   "tuple": (),
-  "bytes": content(),
+  "bytes": _helper.content(),
   "string": "hey",
   "float": 3.14,
   "set": set(),
   "none": None,
 }
+
+j = junk.Junk()
 
 def findme():
 	return "hello"
@@ -168,18 +171,17 @@ func main() {
 			})
 		py.PyDict_SetItemString(globals, "go_func", pyFn)
 
-		// Install some helper code in our global state.
-		result := py.PyRun_String(helperCode, py.PyFileInput, globals, locals)
-		if result == py.NullPyObjectPtr {
+		// Compile some helper code into a module and load it.
+		helperCode := py.Py_CompileString(helperModuleSrc, "_helper.py", py.PyFileInput)
+		if helperCode == py.NullPyCodeObjectPtr {
 			py.PyErr_Print()
-			log.Fatalln("PyRun_String failed.")
+			log.Fatalln("Py_CompileString for helper module failed.")
 		}
-		py.Py_DecRef(result)
-
-		// Populate some global state.
-		bytes := py.PyBytes_FromString("hello world")
-		py.PyDict_SetItemString(globals, "__content__", bytes)
-		py.Py_DecRef(bytes)
+		helperModule := py.PyImport_ExecCodeModule("_helper", helperCode)
+		if helperModule == py.NullPyObjectPtr {
+			py.PyErr_Print()
+			log.Fatalln("PyImport_ExecCodeModule for helper module failed.")
+		}
 
 		// Compile our program.
 		code := py.Py_CompileString(program, "program.py", py.PyFileInput)
@@ -188,13 +190,16 @@ func main() {
 			log.Fatalln("failed to compile python program")
 		}
 
+		// "pre-import" our module
+		py.PyDict_SetItemString(globals, "_helper", helperModule)
+
 		// Run our program.
-		output := py.PyEval_EvalCode(code, globals, locals)
-		if output == py.NullPyObjectPtr {
+		module := py.PyEval_EvalCode(code, globals, locals)
+		if module == py.NullPyObjectPtr {
 			py.PyErr_Print()
 			log.Fatalln("exception in python script")
 		} else {
-			py.Py_DecRef(output)
+			defer py.Py_DecRef(module)
 
 			// Extract our "root" local defined in the code.
 			root := py.PyDict_GetItemString(locals, "root")
@@ -250,7 +255,7 @@ func main() {
 				log.Fatalln("no code object found for function")
 			}
 			empty := py.PyTuple_New(0)
-			result = py.PyObject_CallObject(fn, empty)
+			result := py.PyObject_CallObject(fn, empty)
 			if result == py.NullPyObjectPtr {
 				log.Fatalln("no result from calling function")
 			}
@@ -292,6 +297,26 @@ func main() {
 			}
 			log.Printf("generator result says: '%s'\n", s)
 			py.Py_DecRef(result)
+
+			// Experiment with pickling.
+			pickle := py.PyImport_ImportModule("pickle")
+			if pickle == py.NullPyObjectPtr {
+				log.Fatalln("no pickle module found")
+			}
+			dumps := py.PyObject_GetAttrString(pickle, "dumps")
+			if dumps == py.NullPyObjectPtr {
+				log.Fatalln("expected dumps from pickle module attrs")
+			}
+			junkMod := py.PyImport_ImportModule("junk")
+			if junkMod == py.NullPyObjectPtr {
+				log.Fatalln("no pickle module found")
+			}
+			j := py.PyDict_GetItemString(locals, "j")
+			pickled := py.PyObject_CallOneArg(dumps, j)
+			if pickled == py.NullPyObjectPtr {
+				py.PyErr_Print()
+				log.Fatalln("expected pickled result from dumps")
+			}
 		}
 
 		// Drop ref counts.

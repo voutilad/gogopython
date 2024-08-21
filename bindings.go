@@ -102,6 +102,13 @@ var (
 	PyModule_New          func(string) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
 
+	PyImport_AddModule                   func(name string) PyObjectPtr
+	PyImport_ExecCodeModule              func(name string, code PyCodeObjectPtr) PyObjectPtr
+	PyImport_GetModuleDict               func() PyObjectPtr
+	PyImport_ImportModule                func(name string) PyObjectPtr
+	PyImport_ImportModuleLevel           func(name string, globals, locals, fromList PyObjectPtr, level int32) PyObjectPtr
+	PyImport_ExecCodeModuleWithPathnames func(name string, code PyCodeObjectPtr, pathname, cPathname string) PyObjectPtr
+
 	PyCFunction_NewEx func(def *PyMethodDef, self, module PyObjectPtr) PyObjectPtr
 
 	PyBool_FromLong func(int64) PyObjectPtr
@@ -146,10 +153,11 @@ var (
 
 	PyFunction_GetCode func(fn PyObjectPtr) PyCodeObjectPtr
 
-	PyObject_Call       func(callable, args, kwargs PyObjectPtr) PyObjectPtr
-	PyObject_CallNoArgs func(callable PyObjectPtr) PyObjectPtr
-	PyObject_CallOneArg func(callable, args PyObjectPtr) PyObjectPtr
-	PyObject_CallObject func(callable, args PyObjectPtr) PyObjectPtr
+	PyObject_Call          func(callable, args, kwargs PyObjectPtr) PyObjectPtr
+	PyObject_CallNoArgs    func(callable PyObjectPtr) PyObjectPtr
+	PyObject_CallOneArg    func(callable, args PyObjectPtr) PyObjectPtr
+	PyObject_CallObject    func(callable, args PyObjectPtr) PyObjectPtr
+	PyObject_GetAttrString func(obj PyObjectPtr, name string) PyObjectPtr
 
 	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
 	PyFrozenSet_New func(iterable PyObjectPtr) PyObjectPtr
@@ -241,6 +249,13 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyModule_New, lib, "PyModule_New")
 	purego.RegisterLibFunc(&PyModule_AddObjectRef, lib, "PyModule_AddObjectRef")
 
+	purego.RegisterLibFunc(&PyImport_AddModule, lib, "PyImport_AddModule")
+	purego.RegisterLibFunc(&PyImport_GetModuleDict, lib, "PyImport_GetModuleDict")
+	purego.RegisterLibFunc(&PyImport_ImportModule, lib, "PyImport_ImportModule")
+	purego.RegisterLibFunc(&PyImport_ImportModuleLevel, lib, "PyImport_ImportModuleLevel")
+	purego.RegisterLibFunc(&PyImport_ExecCodeModule, lib, "PyImport_ExecCodeModule")
+	purego.RegisterLibFunc(&PyImport_ExecCodeModuleWithPathnames, lib, "PyImport_ExecCodeModuleWithPathnames")
+
 	purego.RegisterLibFunc(&PyCFunction_NewEx, lib, "PyCFunction_NewEx")
 
 	// ==== Data types
@@ -290,6 +305,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyObject_CallOneArg, lib, "PyObject_CallOneArg")
 	purego.RegisterLibFunc(&PyObject_CallNoArgs, lib, "PyObject_CallNoArgs")
 	purego.RegisterLibFunc(&PyObject_CallObject, lib, "PyObject_CallObject")
+	purego.RegisterLibFunc(&PyObject_GetAttrString, lib, "PyObject_GetAttrString")
 
 	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")
 	purego.RegisterLibFunc(&PyFrozenSet_New, lib, "PyFrozenSet_New")
