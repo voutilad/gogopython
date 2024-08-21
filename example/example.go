@@ -17,8 +17,15 @@ var helperModuleSrc = `
 def content():
 	return b'hey dude'
 
-# trigger a callback
-# go_func(0, 1, 2)
+class Dog:
+	def __init__(self):
+		pass
+
+	def bark(self):
+		msg = "woof"
+		print(msg)
+		return msg
+
 print(f"helper module executed, __name__={__name__}")
 `
 
@@ -34,6 +41,9 @@ root = {
   "set": set(),
   "none": None,
 }
+
+# trigger a callback
+go_func(0, 1, 2)
 
 j = junk.Junk()
 
@@ -182,6 +192,29 @@ func main() {
 			py.PyErr_Print()
 			log.Fatalln("PyImport_ExecCodeModule for helper module failed.")
 		}
+
+		// Try instantiating a Dog and calling a method.
+		dogClass := py.PyObject_GetAttrString(helperModule, "Dog")
+		if dogClass == py.NullPyObjectPtr {
+			log.Fatalln("could not find Dog class")
+		}
+		dog := py.PyObject_CallNoArgs(dogClass)
+		if dog == py.NullPyObjectPtr {
+			py.PyErr_Print()
+			log.Fatalln("could not create a Dog instance")
+		}
+		method := py.PyObject_GetAttrString(dog, "bark")
+		result := py.PyObject_CallNoArgs(method)
+		if result == py.NullPyObjectPtr {
+			py.PyErr_Print()
+			log.Fatalln("could not invoke bark method on Dog instance")
+		}
+		msg, err := py.UnicodeToString(result)
+		if err != nil {
+			panic(err)
+		}
+		log.Println("the dog said:", msg)
+		py.Py_DecRef(result)
 
 		// Compile our program.
 		code := py.Py_CompileString(program, "program.py", py.PyFileInput)
