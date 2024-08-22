@@ -285,6 +285,9 @@ func BaseType(obj PyObjectPtr) Type {
 		if (flags & genMask) == genMask {
 			return Generator
 		}
+		if (flags & moduleMask) == moduleMask {
+			return Module
+		}
 		if (flags & setMask) == setMask {
 			return Set
 		}

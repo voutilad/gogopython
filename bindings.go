@@ -100,6 +100,7 @@ var (
 	PyEval_EvalCode func(co PyCodeObjectPtr, globals, locals PyObjectPtr) PyObjectPtr
 
 	PyModule_New          func(string) PyObjectPtr
+	PyModule_GetDict      func(ptr PyObjectPtr) PyObjectPtr
 	PyModule_AddObjectRef func(module PyObjectPtr, name string, item PyObjectPtr) int32
 
 	PyImport_AddModule                   func(name string) PyObjectPtr
@@ -249,6 +250,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyEval_EvalCode, lib, "PyEval_EvalCode")
 
 	purego.RegisterLibFunc(&PyModule_New, lib, "PyModule_New")
+	purego.RegisterLibFunc(&PyModule_GetDict, lib, "PyModule_GetDict")
 	purego.RegisterLibFunc(&PyModule_AddObjectRef, lib, "PyModule_AddObjectRef")
 
 	purego.RegisterLibFunc(&PyImport_AddModule, lib, "PyImport_AddModule")

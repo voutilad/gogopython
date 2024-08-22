@@ -50,6 +50,7 @@ const (
 	Set       Type = 2         // Python set.
 	Function  Type = 3         // Python function.
 	Generator Type = 4         // Python generator.
+	Module    Type = 5         // Python module.
 
 	Unknown Type = 0xffffffff // We have no idea what the type is...
 )
@@ -75,6 +76,12 @@ func (t Type) String() string {
 		return "Float"
 	case Set:
 		return "Set"
+	case Function:
+		return "Function"
+	case Generator:
+		return "Generator"
+	case Module:
+		return "Module"
 	}
 	return "Unknown"
 }
@@ -91,7 +98,6 @@ const (
 	methodDescriptor      = (1 << 17)    // Object behaves like an unbound method
 	validVersion          = (1 << 19)    // unused legacy flag
 	matchSelf             = (1 << 22)    // "undocumented" flag for some built-ins regarding pattern matching
-	itemsAtEnd            = (1 << 23)    // set if the type stores items at the end of instance memory
 
 	// Heuristic for detecting a Python None. Only these bits should be set.
 	noneMask = (builtIn | immutableFlag | ready | validVersion)
@@ -109,6 +115,9 @@ const (
 
 	// Our heuristic for detecting a Python generator or iterator.
 	genMask = (noneMask | disallowInstantiation | supportsGc)
+
+	// Our heuristic for detecting a Python module.
+	moduleMask = (noneMask | allowsSubclassingFlag | supportsGc)
 )
 
 // PyStatus is returned by some Python C API calls.
