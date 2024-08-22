@@ -31,6 +31,10 @@ print(f"helper module executed, __name__={__name__}")
 
 var program = `
 import example.junk as junk
+
+def findme():
+	return "hello"
+
 root = {
   "long": 123,
   "list": [],
@@ -40,15 +44,14 @@ root = {
   "float": 3.14,
   "set": set(),
   "none": None,
+  "module": junk,
+  "function": findme,
 }
 
 # trigger a callback
 go_func(0, 1, 2)
 
 j = junk.Junk()
-
-def findme():
-	return "hello"
 
 def _genny():
 	yield "hello"
@@ -245,14 +248,16 @@ func main() {
 				log.Fatalln("root should be a dict")
 			}
 			m := map[string]py.Type{
-				"long":   py.Long,
-				"list":   py.List,
-				"tuple":  py.Tuple,
-				"bytes":  py.Bytes,
-				"string": py.String,
-				"float":  py.Float,
-				"set":    py.Set,
-				"none":   py.None,
+				"long":     py.Long,
+				"list":     py.List,
+				"tuple":    py.Tuple,
+				"bytes":    py.Bytes,
+				"string":   py.String,
+				"float":    py.Float,
+				"set":      py.Set,
+				"module":   py.Module,
+				"function": py.Function,
+				"none":     py.None,
 			}
 			for k, v := range m {
 				obj := py.PyDict_GetItemString(root, k)
@@ -260,7 +265,8 @@ func main() {
 					log.Fatalf("Failed to find key %s in root dict\n", k)
 				}
 				if py.BaseType(obj) != v {
-					log.Fatalf("Value for key %s is not %s\n", k, v.String())
+					log.Fatalf("Value for key %s is not %s, got %s\n", k, v.String(),
+						py.BaseType(obj).String())
 				}
 				log.Printf("Detected root['%s'] as a %s\n", k, v.String())
 			}

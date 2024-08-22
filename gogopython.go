@@ -285,11 +285,11 @@ func BaseType(obj PyObjectPtr) Type {
 		if (flags & genMask) == genMask {
 			return Generator
 		}
-		if (flags & moduleMask) == moduleMask {
-			return Module
-		}
 		if (flags & setMask) == setMask {
 			return Set
+		}
+		if (flags & moduleMask) == moduleMask {
+			return Module
 		}
 		if (flags & floatMask) == floatMask {
 			return Float
