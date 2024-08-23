@@ -160,6 +160,7 @@ var (
 	PyObject_CallMethodNoArgs func(obj, name PyObjectPtr) PyObjectPtr
 	PyObject_CallMethodOneArg func(obj, name, arg PyObjectPtr) PyObjectPtr
 	PyObject_CallObject       func(callable, args PyObjectPtr) PyObjectPtr
+	PyObject_IsInstance       func(inst, cls PyObjectPtr) int32
 	PyObject_GetAttrString    func(obj PyObjectPtr, name string) PyObjectPtr
 
 	PySet_New       func(iterable PyObjectPtr) PyObjectPtr
@@ -311,6 +312,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyObject_CallObject, lib, "PyObject_CallObject")
 	purego.RegisterLibFunc(&PyObject_CallMethodOneArg, lib, "PyObject_CallOneArg")
 	purego.RegisterLibFunc(&PyObject_CallMethodNoArgs, lib, "PyObject_CallNoArgs")
+	purego.RegisterLibFunc(&PyObject_IsInstance, lib, "PyObject_IsInstance")
 	purego.RegisterLibFunc(&PyObject_GetAttrString, lib, "PyObject_GetAttrString")
 
 	purego.RegisterLibFunc(&PySet_New, lib, "PySet_New")

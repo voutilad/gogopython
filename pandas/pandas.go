@@ -87,22 +87,27 @@ print(f"script2: {df}")
 
 	m := py.PyImport_AddModule("__main__")
 	log.Println("m:", py.BaseType(m).String())
-	locals := py.PyModule_GetDict(m)
+	globals := py.PyModule_GetDict(m)
 
-	result := py.PyEval_EvalCode(code1, locals, locals)
+	locals1 := py.PyDict_New()
+	result := py.PyEval_EvalCode(code1, globals, locals1)
 	if result == py.NullPyObjectPtr {
 		py.PyErr_Print()
 	}
 	log.Println("result:", py.BaseType(result).String())
 
-	keys := py.PyDict_Keys(locals)
+	keys := py.PyDict_Keys(locals1)
 	for i := int64(0); i < py.PyList_Size(keys); i++ {
 		key := py.PyList_GetItem(keys, i)
 		s, _ := py.UnicodeToString(key)
 		log.Println(i, "key:", s)
 	}
 
-	result = py.PyEval_EvalCode(code2, locals, locals)
+	buffer := py.PyDict_GetItemString(locals1, "buffer")
+	locals2 := py.PyDict_New()
+	py.PyDict_SetItemString(locals2, "buffer", buffer)
+
+	result = py.PyEval_EvalCode(code2, globals, locals2)
 	if result == py.NullPyObjectPtr {
 		py.PyErr_Print()
 	}

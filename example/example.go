@@ -206,6 +206,9 @@ func main() {
 			py.PyErr_Print()
 			log.Fatalln("could not create a Dog instance")
 		}
+		if py.PyObject_IsInstance(dog, dogClass) != 1 {
+			log.Fatalln("expected dog to be a Dog instance")
+		}
 		method := py.PyObject_GetAttrString(dog, "bark")
 		result := py.PyObject_CallNoArgs(method)
 		if result == py.NullPyObjectPtr {
