@@ -179,6 +179,7 @@ var (
 	PyBytes_Size                  func(PyObjectPtr) int64
 
 	PyUnicode_FromString       func(string) PyObjectPtr
+	PyUnicode_AsEncodedString  func(unicode PyObjectPtr, encoding string, errors EncodingErrors) PyObjectPtr
 	PyUnicode_AsWideCharString func(PyObjectPtr, *int) WCharPtr
 	PyUnicode_DecodeFSDefault  func(string) PyObjectPtr
 	PyUnicode_EncodeFSDefault  func(PyObjectPtr) PyObjectPtr
@@ -331,6 +332,7 @@ func registerFuncs(lib PythonLibraryPtr) {
 	purego.RegisterLibFunc(&PyBytes_Size, lib, "PyBytes_Size")
 
 	purego.RegisterLibFunc(&PyUnicode_FromString, lib, "PyUnicode_FromString")
+	purego.RegisterLibFunc(&PyUnicode_AsEncodedString, lib, "PyUnicode_AsEncodedString")
 	purego.RegisterLibFunc(&PyUnicode_AsWideCharString, lib, "PyUnicode_AsWideCharString")
 	purego.RegisterLibFunc(&PyUnicode_DecodeFSDefault, lib, "PyUnicode_DecodeFSDefault")
 	purego.RegisterLibFunc(&PyUnicode_EncodeFSDefault, lib, "PyUnicode_EncodeFSDefault")

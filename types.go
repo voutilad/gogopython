@@ -24,6 +24,16 @@ const NullPyTypeObjectPtr PyTypeObjectPtr = 0
 // NullPyCodeObjectPtr represents a NULL pointer to a Python code object.
 const NullPyCodeObjectPtr PyCodeObjectPtr = 0
 
+type EncodingErrors = string
+
+const (
+	Strict            EncodingErrors = "strict"
+	Ignore            EncodingErrors = "ignore"
+	Replace           EncodingErrors = "replace"
+	XmlCharRefReplace EncodingErrors = "xmlcharrefreplace"
+	BackslashReplace  EncodingErrors = "backslashreplace"
+)
+
 // StartToken (confusingly named) is used to dictate to the Python
 // interpreter and compiler how to evaluate a Python script.
 type StartToken = int32

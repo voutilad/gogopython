@@ -220,7 +220,7 @@ func WCharToString(text WCharPtr) (string, error) {
 		if *(*uint8)(ptr) == 0 {
 			// Found our NULL.
 			s := unsafe.String(p, _len)
-			// We don't own the backing bytes, the intepreter does.
+			// We don't own the backing bytes, the interpreter does.
 			// As such, we need to make a copy.
 			return strings.Clone(s), nil
 		}
@@ -236,14 +236,19 @@ func WCharToString(text WCharPtr) (string, error) {
 // Note: this currently involves a lot of data copying out from the Python
 // interpreter. It's far from optimized.
 func UnicodeToString(unicode PyObjectPtr) (string, error) {
-	wchar := PyUnicode_AsWideCharString(unicode, nil)
-	if wchar == nil {
-		return "", errors.New("failed to convert to wchar")
+	buf := PyUnicode_AsEncodedString(unicode, "utf-8", Strict)
+	if buf == NullPyObjectPtr {
+		PyErr_Print()
+		return "", errors.New("failed to encode python object")
 	}
+	defer Py_DecRef(buf)
 
-	str, err := WCharToString(wchar)
-	PyMem_Free(wchar)
-	return str, err
+	sz := PyBytes_Size(buf)
+	p := PyBytes_AsString(buf)
+	str := unsafe.String(p, sz)
+
+	// We need to make a copy as the backing bytes are not owned by str.
+	return strings.Clone(str), nil
 }
 
 // BaseType identifies the Python base type from a Python *PyObject.
