@@ -53,7 +53,7 @@ const (
 	List      Type = (1 << 25) // Python list.
 	Tuple     Type = (1 << 26) // Python tuple.
 	Bytes     Type = (1 << 27) // Python bytes (not bytearray).
-	String    Type = (1 << 28) // Python unicode string.
+	String    Type = (1 << 28) // Python Unicode string.
 	Dict      Type = (1 << 29) // Python dictionary.
 	None      Type = 0         // The Python "None" type.
 	Float     Type = 1         // Python float.
@@ -61,13 +61,15 @@ const (
 	Function  Type = 3         // Python function.
 	Generator Type = 4         // Python generator.
 	Module    Type = 5         // Python module.
-
-	Unknown Type = 0xffffffff // We have no idea what the type is...
+	Bool      Type = 6
+	Unknown   Type = 0xffffffff // We have no idea what the type is...
 )
 
 // String converts a Type to a human-readable string representation.
 func (t Type) String() string {
 	switch t {
+	case Bool:
+		return "Bool"
 	case Long:
 		return "Long"
 	case List:
@@ -108,6 +110,7 @@ const (
 	methodDescriptor      = (1 << 17)    // Object behaves like an unbound method
 	validVersion          = (1 << 19)    // unused legacy flag
 	matchSelf             = (1 << 22)    // "undocumented" flag for some built-ins regarding pattern matching
+	longSubclass          = (1 << 24)    // type is a subclass of or is a long
 
 	// Heuristic for detecting a Python None. Only these bits should be set.
 	noneMask = (builtIn | immutableFlag | ready | validVersion)
@@ -128,6 +131,9 @@ const (
 
 	// Our heuristic for detecting a Python module.
 	moduleMask = (noneMask | allowsSubclassingFlag | supportsGc)
+
+	// Our heuristic for detecting a Python bool.
+	boolMask = (noneMask | matchSelf | longSubclass)
 )
 
 // PyStatus is returned by some Python C API calls.

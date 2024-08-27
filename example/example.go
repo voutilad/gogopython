@@ -37,6 +37,7 @@ def findme():
 
 root = {
   "long": 123,
+  "bool": True,
   "list": [],
   "tuple": (),
   "bytes": _helper.content(),
@@ -253,6 +254,7 @@ func main() {
 			m := map[string]py.Type{
 				"long":     py.Long,
 				"list":     py.List,
+				"bool":     py.Bool,
 				"tuple":    py.Tuple,
 				"bytes":    py.Bytes,
 				"string":   py.String,

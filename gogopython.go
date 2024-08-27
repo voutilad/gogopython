@@ -270,6 +270,11 @@ func BaseType(obj PyObjectPtr) Type {
 
 	flags := PyType_GetFlags(tp)
 	if (flags & typeMask) != 0 {
+		// Booleans have masks that overlap with Longs as they're really
+		// represented as Longs under the hood, it seems.
+		if flags == boolMask {
+			return Bool
+		}
 		if (flags & (uint64)(Long)) != 0 {
 			return Long
 		} else if (flags & (uint64)(List)) != 0 {
