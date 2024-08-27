@@ -25,11 +25,11 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-// Load_library attempts to load and wrap the appropriate dynamic library for
+// LoadLibrary attempts to load and wrap the appropriate dynamic library for
 // embedding Python, given a particular Python binary.
 //
 // Currently, assumes the provided binary is for Python 3.12.
-func Load_library(exe string) error {
+func LoadLibrary(exe string) error {
 	var dll string
 	var err error
 	os := runtime.GOOS
@@ -60,7 +60,7 @@ func Load_library(exe string) error {
 			return errors.New("failed to find library base path")
 		}
 	}
-	library := *base + "/" + dll
+	library := base + "/" + dll
 
 	lib, err := purego.Dlopen(library, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
@@ -76,64 +76,64 @@ func Load_library(exe string) error {
 // package.
 //
 // Returns a pointer to the base directory as a string or an error on failure.
-func findLibraryBaseUsingDistutils(exe string) (*string, error) {
-	// todo: context with deadline
+func findLibraryBaseUsingDistutils(exe string) (string, error) {
+	// TODO: context with deadline
 	// One approach is, assuming setuptools is available, is to use distutils.
 	cmd := exec.Command(exe, "-c", "from distutils import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return "", err
 	}
 	base, err := bufio.NewReader(stdout).ReadString(byte('\n'))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if err = cmd.Wait(); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if base != "" {
 		lib := strings.TrimRight(base, " \n")
-		return &lib, nil
+		return lib, nil
 	}
-	return nil, errors.New("failed to find library base")
+	return "", errors.New("failed to find library base")
 }
 
 // Try using otool (on macOS) and see if we can find the dynamic library path.
 // This is "best effort"...and "best" is a bit of a stretch.
 //
 // Returns the base path as a pointer to a string or an error on failure.
-func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
+func findLibraryBaseFallbackToOtool(exe string) (string, error) {
 	lib := ""
 
 	// First resolve the location if we're given just "python3"
 	cmd := exec.Command("command", "-v", exe)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return "", err
 	}
 	path, err := bufio.NewReader(stdout).ReadString(byte('\n'))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if err = cmd.Wait(); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	cmd = exec.Command("otool", "-L", strings.TrimRight(path, "\n"))
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	scanner := bufio.NewScanner(bufio.NewReader(stdout))
@@ -145,7 +145,7 @@ func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
 			//    /something/Python.framework/Versions/3.12/Python (compatibility ...)
 			parts := strings.SplitAfterN(strings.TrimLeft(text, " \t"), " ", 2)
 			if len(parts) < 2 {
-				return nil, errors.New("could not parse otool output")
+				return "", errors.New("could not parse otool output")
 			}
 			lib = strings.TrimRight(parts[0], " ")
 			lib = strings.TrimSuffix(lib, "Python")
@@ -156,12 +156,12 @@ func findLibraryBaseFallbackToOtool(exe string) (*string, error) {
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if lib != "" {
-		return &lib, nil
+		return lib, nil
 	}
-	return nil, errors.New("failed to find library base")
+	return "", errors.New("failed to find library base")
 }
 
 // Python snippet for discovering home and path.

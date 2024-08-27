@@ -73,7 +73,7 @@ func main() {
 	path := strings.Join(paths, ":")
 
 	// Initialize the bindings.
-	err = py.Load_library(exe)
+	err = py.LoadLibrary(exe)
 	if err != nil {
 		log.Fatalln(err)
 	}
